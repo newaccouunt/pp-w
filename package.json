@@ -1,29 +1,20 @@
 {
-  "name": "bronx-osint-v502-pro",
+  "name": "bronx-osint-v502",
   "version": "5.0.2",
-  "description": "🛡️ BRONX OSINT V502 PRO — Professional OSINT API with Smart DDoS protection and admin dashboard",
+  "description": "BRONX OSINT V502 PRO — Developer Edition",
   "main": "api/index.js",
   "scripts": {
     "start": "node api/index.js",
-    "dev": "nodemon api/index.js"
+    "dev": "node api/index.js"
   },
   "engines": {
     "node": ">=18.0.0"
   },
-  "keywords": [
-    "osint",
-    "api",
-    "bronx",
-    "express",
-    "ddos-protection"
-  ],
-  "author": "BRONX",
-  "license": "MIT",
   "dependencies": {
     "axios": "^1.7.7",
     "express": "^4.21.1"
   },
-  "devDependencies": {
-    "nodemon": "^3.1.7"
-  }
+  "keywords": ["osint", "api", "bronx"],
+  "author": "BRONX",
+  "license": "MIT"
 }

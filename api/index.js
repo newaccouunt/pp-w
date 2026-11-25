@@ -1,14 +1,13 @@
 // ============================================================
-// 🛡️ BRONX OSINT V503 ULTRA PROFESSIONAL EDITION
-// ✅ Professional Developer UI (GitHub-style dark theme)
-// ✅ Full Working Admin Panel (no broken buttons)
-// ✅ Public Dashboard: Form-based API tester with live JSON output
-// ✅ Per-key & Global Developer Name (hide-able)
-// ✅ Per-key Hidden Fields (credit, by, channel etc.)
-// ✅ Custom plain-text error messages (emoji + symbols)
-// ✅ File-based Backup/Import (JSON export/copy/download/upload)
-// ✅ Smart DDoS Protection (off/smart/strict)
-// ✅ 100% Error-Free, Smooth Working
+// 🛡️ BRONX OSINT V504 ULTRA PRO — FULL FIXED EDITION
+// ✅ Multi-Color Professional UI (No Cartoon)
+// ✅ 100% Working Admin Panel (All Tabs & Buttons)
+// ✅ Live JSON Playground on Public Dashboard
+// ✅ Global & Per-Key Custom Developer Name
+// ✅ Dynamic Response Field Hiding
+// ✅ File-based Backup/Import
+// ✅ Strict DDoS Protection Mode
+// ✅ Mobile Friendly & Error-Free
 // ============================================================
 const express = require('express');
 const axios = require('axios');
@@ -24,18 +23,17 @@ const REAL_API_BASE = 'https://bronx-osint-api.duckdns.org/api';
 const REAL_API_KEYS = ['bronx-bot-9999', 'bronx-ultra-king-ft-bro-op'];
 let currentKeyIndex = 0;
 const getNextKey = () => { const k = REAL_API_KEYS[currentKeyIndex]; currentKeyIndex = (currentKeyIndex + 1) % REAL_API_KEYS.length; return k; };
-
 const ADMIN_USERNAME = process.env.ADMIN_USERNAME || 'bronx';
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || '85095613';
 const ADMIN_PATH = '/bronx-admin-panel';
 const DATA_DIR = process.env.RENDER_DATA_DIR || '/tmp';
 const F = (n) => path.join(DATA_DIR, n);
-const DATA_FILE = F('bronx_v503_data.json');
-const LOGS_FILE = F('bronx_v503_logs.json');
-const ADMIN_LOGS_FILE = F('bronx_v503_admin_logs.json');
+const DATA_FILE = F('bronx_v504_data.json');
+const LOGS_FILE = F('bronx_v504_logs.json');
+const ADMIN_LOGS_FILE = F('bronx_v504_admin_logs.json');
 
 // ============================================================
-// 🗄️ STATE
+// 🗄️ STATE & CUSTOM SETTINGS
 // ============================================================
 let keyStorage = {};
 let customAPIs = [];
@@ -68,33 +66,33 @@ let customMessages = {
 
 let globalConfig = {
     developerName: "@BRONX_ULTRA",
-    hiddenFields: "credit,truecaller_name,cached,cached_at,api_by,by,channel,developer,api_key,real_url,source_url,owner,key_note,response_time_ms,powered_by",
+    hiddenFields: "credit, truecaller_name, cached, cached_at, api_by, by, channel, developer, api_key, real_url, source_url, owner, key_note, response_time_ms",
     showDevName: true
 };
 
 // ============================================================
-// 🎨 THEME
+// 🎨 MULTI-COLOR THEME
 // ============================================================
 let theme = {
     preset: 'pro-dark',
     colors: {
-        bgPrimary: '#0d1117', bgSecondary: '#161b22', bgCard: '#161b22',
-        borderColor: '#30363d',
-        textPrimary: '#c9d1d9', textSecondary: '#8b949e', textMuted: '#6e7681',
-        accent: '#58a6ff', accent2: '#238636', success: '#3fb950', warning: '#d29922',
-        danger: '#f85149', info: '#58a6ff', pink: '#db61a2', purple: '#a371f7', yellow: '#e3b341'
+        bgPrimary: '#09090b', bgSecondary: '#18181b', bgCard: '#18181b',
+        borderColor: '#27272a',
+        textPrimary: '#f4f4f5', textSecondary: '#a1a1aa', textMuted: '#71717a',
+        accent: '#6366f1', accent2: '#8b5cf6', success: '#10b981', warning: '#f59e0b',
+        danger: '#ef4444', info: '#3b82f6', pink: '#ec4899', purple: '#8b5cf6', yellow: '#eab308'
     },
-    effects: { glow: false, gridBg: true },
+    effects: { glow: true, gridBg: true },
     fonts: { heading: 'Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif', body: 'Inter,sans-serif', mono: 'ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,monospace' },
-    radius: 6,
-    version: 1
+    radius: 8,
+    version: 2
 };
 
 const PRESETS = {
-    'pro-dark': { accent: '#58a6ff', accent2: '#238636', bgPrimary: '#0d1117', bgSecondary: '#161b22' },
-    'pro-light': { accent: '#0969da', accent2: '#1a7f37', bgPrimary: '#ffffff', bgSecondary: '#f6f8fa' },
-    'midnight': { accent: '#79c0ff', accent2: '#d2a8ff', bgPrimary: '#010409', bgSecondary: '#0d1117' },
-    'nord': { accent: '#88c0d0', accent2: '#a3be8c', bgPrimary: '#2e3440', bgSecondary: '#3b4252' }
+    'pro-dark': { accent: '#6366f1', accent2: '#8b5cf6', bgPrimary: '#09090b', bgSecondary: '#18181b' },
+    'neon-purple': { accent: '#d946ef', accent2: '#8b5cf6', bgPrimary: '#0f0714', bgSecondary: '#1a0b22' },
+    'emerald-dark': { accent: '#10b981', accent2: '#059669', bgPrimary: '#022c22', bgSecondary: '#064e3b' },
+    'ocean-blue': { accent: '#3b82f6', accent2: '#06b6d4', bgPrimary: '#0f172a', bgSecondary: '#1e293b' }
 };
 
 function hexToRgb(hex){
@@ -112,7 +110,6 @@ function applyPreset(name){
     theme.colors.bgPrimary = p.bgPrimary;
     theme.colors.bgSecondary = p.bgSecondary;
     theme.colors.bgCard = p.bgSecondary;
-    theme.colors.borderColor = name === 'pro-light' ? 'rgba(0,0,0,0.1)' : 'rgba(255,255,255,0.1)';
     theme.version++;
     return true;
 }
@@ -534,16 +531,14 @@ app.use('/api', (req,res,next) => {
 // ============================================================
 app.get('/', (req,res) => { try { res.send(renderHome()); } catch(e){ res.send('err: ' + e.message); } });
 app.get('/test', (req,res) => res.json({
-    status:'BRONX V503 ULTRA ONLINE', version:'5.0.3', ddos: ddosConfig.mode,
+    status:'BRONX V504 ULTRA ONLINE', version:'5.0.4', ddos: ddosConfig.mode,
     keys: Object.keys(keyStorage).length, endpoints: Object.keys(endpoints).length,
     custom: customAPIs.length, bannedIPs: Object.keys(bans.ip).length,
     bannedDevices: Object.keys(bans.device).length, devicesTracked: Object.keys(deviceFingerprints).length,
     theme: theme.preset, maintenance: maintenance.enabled
 }));
-app.get('/theme', (req,res) => res.json(theme));
-app.get('/public-theme', (req,res) => res.json({ theme, announcement, maintenance }));
 
-// Public API tester (form submit from dashboard) — no key required for JSON preview check
+// Public API tester (form submit from dashboard)
 app.get('/api/preview/:ep', async (req,res) => {
     try{
         const ep = req.params.ep;
@@ -1004,7 +999,7 @@ app.get(ADMIN_PATH + '/backup', adminAuth, (req,res) => {
     const ks = {};
     Object.entries(keyStorage).forEach(([k,v]) => { if(!v._hardcoded) ks[k]=v; });
     res.json({
-        version:'5.0.3', exported_at: getIndiaDateTime(),
+        version:'5.0.4', exported_at: getIndiaDateTime(),
         keys: ks, apis: customAPIs, protected: protectedData,
         endpointResponses, theme, ddosConfig, whitelist,
         announcement, maintenance, bans, deviceFingerprints, globalConfig, customMessages
@@ -1062,7 +1057,7 @@ app.get(ADMIN_PATH + '/whitelist', adminAuth, (req,res) => res.json(whitelist));
 app.use((req,res) => res.status(404).json({error:'Not found'}));
 
 // ============================================================
-// 🎨 CSS GENERATOR
+// 🎨 CSS GENERATOR (MULTI-COLOR PREMIUM UI)
 // ============================================================
 function generateCSS(){
     const c = theme.colors;
@@ -1076,143 +1071,142 @@ function generateCSS(){
     --text-secondary:${c.textSecondary}; --text-muted:${c.textMuted};
     --accent:${c.accent}; --accent2:${c.accent2};
     --success:${c.success}; --warning:${c.warning}; --danger:${c.danger}; --info:${c.info};
-    --radius:${r}px; --tr:all .18s ease;
+    --radius:${r}px; --tr:all .2s cubic-bezier(0.4, 0, 0.2, 1);
 }
-*{margin:0;padding:0;box-sizing:border-box}
-body{background:var(--bg-primary);color:var(--text-primary);font-family:${theme.fonts.body};min-height:100vh;line-height:1.55;-webkit-font-smoothing:antialiased;font-size:14px}
-${e.gridBg ? `.grid-bg{position:fixed;inset:0;background-image:radial-gradient(${hexToRgbStr(c.accent,.06)} 1px,transparent 1px);background-size:28px 28px;z-index:0;pointer-events:none}` : '.grid-bg{display:none}'}
-::-webkit-scrollbar{width:10px;height:10px}
+*{margin:0;padding:0;box-sizing:border-box;outline:none}
+body{background:var(--bg-primary);color:var(--text-primary);font-family:${theme.fonts.body};min-height:100vh;line-height:1.6;-webkit-font-smoothing:antialiased;font-size:14px}
+${e.gridBg ? `.grid-bg{position:fixed;inset:0;background-image:radial-gradient(${hexToRgbStr(c.accent,.08)} 1px,transparent 1px);background-size:24px 24px;z-index:0;pointer-events:none}` : '.grid-bg{display:none}'}
+::-webkit-scrollbar{width:8px;height:8px}
 ::-webkit-scrollbar-track{background:var(--bg-primary)}
-::-webkit-scrollbar-thumb{background:var(--border-color);border-radius:5px}
+::-webkit-scrollbar-thumb{background:var(--border-color);border-radius:4px}
 ::-webkit-scrollbar-thumb:hover{background:var(--text-muted)}
 a{color:var(--accent);text-decoration:none}
 a:hover{text-decoration:underline}
+
+/* Layout */
 .admin-container{display:flex;min-height:100vh;position:relative;z-index:10}
-.sidebar{width:240px;background:var(--bg-secondary);border-right:1px solid var(--border-color);padding:0;position:fixed;height:100vh;overflow-y:auto;z-index:20}
-.sidebar-header{padding:20px 16px;border-bottom:1px solid var(--border-color)}
-.sidebar-logo{display:inline-block;width:36px;height:36px;line-height:36px;text-align:center;background:var(--accent);color:#fff;border-radius:6px;font-weight:700;font-size:14px;margin-bottom:10px}
-.sidebar-title{font-size:14px;font-weight:700;color:var(--text-primary);letter-spacing:0.5px}
-.sidebar-subtitle{font-size:11px;color:var(--text-muted);margin-top:2px}
-.sidebar-nav{list-style:none;padding:10px 8px}
-.sidebar-nav li{margin-bottom:1px}
-.sidebar-nav a{display:flex;align-items:center;gap:10px;padding:9px 12px;color:var(--text-secondary);text-decoration:none;border-radius:5px;transition:var(--tr);font-size:12.5px;font-weight:500;cursor:pointer;border:1px solid transparent}
-.sidebar-nav a:hover{background:var(--bg-primary);color:var(--text-primary)}
-.sidebar-nav a.active{background:${hexToRgbStr(c.accent,.15)};color:var(--accent);font-weight:600;border-color:${hexToRgbStr(c.accent,.3)}}
-.sidebar-nav i{width:16px;text-align:center;font-size:12px;flex-shrink:0}
-.main-content{flex:1;margin-left:240px;padding:24px;min-height:100vh}
-.page-title{font-size:20px;font-weight:700;color:var(--text-primary);margin-bottom:20px;padding-bottom:16px;border-bottom:1px solid var(--border-color);display:flex;align-items:center;gap:10px}
-.page-title i{color:var(--accent)}
-.card{background:var(--bg-card);border:1px solid var(--border-color);border-radius:var(--radius);padding:24px;margin-bottom:20px}
-.card h3{margin-bottom:20px;font-size:15px;font-weight:600;display:flex;align-items:center;gap:10px;color:var(--text-primary);padding-bottom:14px;border-bottom:1px solid var(--border-color)}
-.card h3 i{color:var(--accent);font-size:14px}
-.card h4{font-size:13px;font-weight:600;color:var(--text-primary);margin:16px 0 10px}
-.stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:20px}
-.stat-card{background:var(--bg-secondary);border:1px solid var(--border-color);border-radius:6px;padding:18px 16px;transition:var(--tr)}
-.stat-card:hover{border-color:var(--accent)}
-.stat-icon{font-size:11px;color:var(--text-muted);text-transform:uppercase;font-weight:600;letter-spacing:1px;margin-bottom:8px}
-.stat-value{font-size:24px;font-weight:700;color:var(--text-primary);margin-bottom:2px;font-family:${theme.fonts.mono}}
-.stat-label{font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.8px;font-weight:500}
-.form-group{margin-bottom:16px}
-.form-group label{display:block;margin-bottom:6px;color:var(--text-secondary);font-size:11.5px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px}
-.form-input, input[type="text"], input[type="password"], input[type="number"], input[type="file"], textarea, select{width:100%;padding:9px 12px;background:var(--bg-primary);border:1px solid var(--border-color);border-radius:5px;color:var(--text-primary);font-size:13px;transition:var(--tr);outline:none;font-family:${theme.fonts.body}}
-.form-input:focus, input:focus, textarea:focus, select:focus{border-color:var(--accent);box-shadow:0 0 0 3px ${hexToRgbStr(c.accent,.15)}}
-input[type="checkbox"]{width:auto;accent-color:var(--accent);cursor:pointer}
-textarea{resize:vertical;font-family:${theme.fonts.mono};font-size:12px}
+.sidebar{width:260px;background:var(--bg-secondary);border-right:1px solid var(--border-color);position:fixed;height:100vh;overflow-y:auto;z-index:20;display:flex;flex-direction:column}
+.sidebar-header{padding:24px 20px;border-bottom:1px solid var(--border-color);display:flex;align-items:center;gap:12px}
+.sidebar-logo{width:40px;height:40px;line-height:40px;text-align:center;background:linear-gradient(135deg, var(--accent), var(--accent2));color:#fff;border-radius:8px;font-weight:800;font-size:18px;box-shadow:0 4px 12px ${hexToRgbStr(c.accent,.3)}}
+.sidebar-title{font-size:15px;font-weight:700;color:var(--text-primary);letter-spacing:0.5px}
+.sidebar-subtitle{font-size:11px;color:var(--text-muted);margin-top:2px;text-transform:uppercase;letter-spacing:1px}
+.sidebar-nav{list-style:none;padding:16px 12px;flex:1;overflow-y:auto}
+.nav-section{font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:1.5px;color:var(--text-muted);padding:16px 12px 8px;margin-top:8px}
+.sidebar-nav li{margin-bottom:2px}
+.sidebar-nav a{display:flex;align-items:center;gap:12px;padding:10px 12px;color:var(--text-secondary);text-decoration:none;border-radius:6px;transition:var(--tr);font-size:13px;font-weight:500;cursor:pointer;border:1px solid transparent}
+.sidebar-nav a:hover{background:${hexToRgbStr(c.accent,.1)};color:var(--text-primary)}
+.sidebar-nav a.active{background:linear-gradient(90deg, ${hexToRgbStr(c.accent,.2)}, transparent);color:var(--accent);font-weight:600;border-left:3px solid var(--accent);border-radius:0 6px 6px 0}
+.sidebar-nav i{width:18px;text-align:center;font-size:14px}
+.main-content{flex:1;margin-left:260px;padding:32px;min-height:100vh}
+
+/* Cards & Stats */
+.page-title{font-size:24px;font-weight:800;color:var(--text-primary);margin-bottom:24px;display:flex;align-items:center;gap:12px}
+.card{background:var(--bg-card);border:1px solid var(--border-color);border-radius:var(--radius);padding:24px;margin-bottom:24px;box-shadow:0 4px 6px -1px rgba(0,0,0,0.1)}
+.card h3{margin-bottom:20px;font-size:16px;font-weight:700;display:flex;align-items:center;gap:10px;color:var(--text-primary);padding-bottom:16px;border-bottom:1px solid var(--border-color)}
+.card h3 i{color:var(--accent)}
+.stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:16px;margin-bottom:24px}
+.stat-card{background:var(--bg-secondary);border:1px solid var(--border-color);border-radius:var(--radius);padding:20px;transition:var(--tr);position:relative;overflow:hidden}
+.stat-card::before{content:'';position:absolute;top:0;left:0;width:100%;height:3px;background:linear-gradient(90deg, var(--accent), var(--accent2))}
+.stat-card:hover{transform:translateY(-2px);border-color:var(--accent);box-shadow:0 8px 16px -4px ${hexToRgbStr(c.accent,.2)}}
+.stat-icon{font-size:12px;color:var(--text-muted);text-transform:uppercase;font-weight:700;letter-spacing:1px;margin-bottom:12px}
+.stat-value{font-size:28px;font-weight:800;color:var(--text-primary);font-family:${theme.fonts.mono}}
+.stat-label{font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px;font-weight:600;margin-top:4px}
+
+/* Forms & Buttons */
+.form-group{margin-bottom:20px}
+.form-group label{display:block;margin-bottom:8px;color:var(--text-primary);font-size:12px;font-weight:600;letter-spacing:0.5px}
+.form-input, input[type="text"], input[type="password"], input[type="number"], input[type="file"], textarea, select{width:100%;padding:12px 16px;background:var(--bg-primary);border:1px solid var(--border-color);border-radius:6px;color:var(--text-primary);font-size:14px;transition:var(--tr);font-family:${theme.fonts.body}}
+.form-input:focus, input:focus, textarea:focus, select:focus{border-color:var(--accent);box-shadow:0 0 0 3px ${hexToRgbStr(c.accent,.2)}}
+input[type="checkbox"]{width:16px;height:16px;accent-color:var(--accent);cursor:pointer}
+textarea{resize:vertical;font-family:${theme.fonts.mono};font-size:13px;line-height:1.5}
 select option{background:var(--bg-secondary);color:var(--text-primary)}
-.btn{padding:9px 16px;background:var(--bg-secondary);color:var(--text-primary);border:1px solid var(--border-color);border-radius:5px;cursor:pointer;font-weight:600;font-size:12.5px;transition:var(--tr);font-family:${theme.fonts.body};display:inline-flex;align-items:center;justify-content:center;gap:6px;text-decoration:none}
-.btn:hover{background:var(--bg-primary);border-color:var(--text-muted)}
-.btn-primary{background:var(--accent);color:#fff;border-color:var(--accent)}
-.btn-primary:hover{background:${hexToRgbStr(c.accent,.85)};border-color:${hexToRgbStr(c.accent,.85)}}
-.btn-success{background:var(--accent2);color:#fff;border-color:var(--accent2)}
-.btn-danger{background:var(--danger);color:#fff;border-color:var(--danger)}
-.btn-warning{background:var(--warning);color:#0d1117;border-color:var(--warning)}
+.btn{padding:10px 20px;background:var(--bg-secondary);color:var(--text-primary);border:1px solid var(--border-color);border-radius:6px;cursor:pointer;font-weight:600;font-size:13px;transition:var(--tr);font-family:${theme.fonts.body};display:inline-flex;align-items:center;justify-content:center;gap:8px}
+.btn:hover{background:var(--bg-primary);border-color:var(--text-muted);transform:translateY(-1px)}
+.btn-primary{background:linear-gradient(135deg, var(--accent), var(--accent2));color:#fff;border:none;box-shadow:0 4px 12px ${hexToRgbStr(c.accent,.3)}}
+.btn-primary:hover{opacity:0.95;box-shadow:0 6px 16px ${hexToRgbStr(c.accent,.4)}}
+.btn-success{background:var(--success);color:#fff;border:none}
+.btn-danger{background:var(--danger);color:#fff;border:none}
+.btn-warning{background:var(--warning);color:#000;border:none}
 .btn-block{width:100%}
-.btn-sm{padding:5px 10px;font-size:11px}
-.btn-icon{width:32px;height:32px;padding:0;border-radius:5px}
-.table-container{overflow-x:auto;border-radius:6px;border:1px solid var(--border-color);background:var(--bg-secondary)}
-table{width:100%;border-collapse:collapse;font-size:12.5px}
-th{background:var(--bg-primary);color:var(--text-secondary);padding:11px 12px;text-align:left;font-weight:600;text-transform:uppercase;font-size:10.5px;letter-spacing:0.6px;position:sticky;top:0;z-index:2;border-bottom:1px solid var(--border-color)}
-td{padding:11px 12px;border-bottom:1px solid var(--border-color);color:var(--text-primary)}
-tbody tr:hover td{background:var(--bg-primary)}
+.btn-sm{padding:6px 12px;font-size:11px}
+
+/* Tables */
+.table-container{overflow-x:auto;border-radius:var(--radius);border:1px solid var(--border-color);background:var(--bg-secondary);margin-bottom:16px}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{background:var(--bg-primary);color:var(--text-secondary);padding:14px 16px;text-align:left;font-weight:700;text-transform:uppercase;font-size:10.5px;letter-spacing:1px;position:sticky;top:0;z-index:2;border-bottom:1px solid var(--border-color)}
+td{padding:14px 16px;border-bottom:1px solid var(--border-color);color:var(--text-primary)}
+tbody tr:hover td{background:${hexToRgbStr(c.accent,.05)}}
 tbody tr:last-child td{border-bottom:none}
-code, .code{background:${hexToRgbStr(c.accent,.1)};padding:2px 6px;border-radius:4px;color:var(--accent);font-family:${theme.fonts.mono};font-size:11.5px;border:1px solid ${hexToRgbStr(c.accent,.2)}}
-.badge{display:inline-block;padding:2px 8px;border-radius:12px;font-size:10.5px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;border:1px solid}
-.badge-success{background:${hexToRgbStr(c.success,.15)};color:var(--success);border-color:${hexToRgbStr(c.success,.3)}}
-.badge-danger{background:${hexToRgbStr(c.danger,.15)};color:var(--danger);border-color:${hexToRgbStr(c.danger,.3)}}
-.badge-warning{background:${hexToRgbStr(c.warning,.15)};color:var(--warning);border-color:${hexToRgbStr(c.warning,.3)}}
-.badge-muted{background:${hexToRgbStr(c.textMuted,.15)};color:var(--textMuted);border-color:${hexToRgbStr(c.textMuted,.3)}}
-.badge-info{background:${hexToRgbStr(c.info,.15)};color:var(--info);border-color:${hexToRgbStr(c.info,.3)}}
-.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
-.grid-3{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
-.grid-4{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
-.toast{position:fixed;top:20px;right:20px;z-index:99999;padding:12px 18px;border-radius:6px;font-weight:600;font-size:13px;animation:slideIn .3s ease;max-width:420px;border:1px solid;backdrop-filter:blur(8px);background:var(--bg-card)}
+code{background:var(--bg-primary);padding:4px 8px;border-radius:4px;color:var(--accent);font-family:${theme.fonts.mono};font-size:12px;border:1px solid var(--border-color)}
+
+/* Badges */
+.badge{display:inline-flex;align-items:center;padding:4px 10px;border-radius:20px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px}
+.badge-success{background:${hexToRgbStr(c.success,.15)};color:var(--success);border:1px solid ${hexToRgbStr(c.success,.3)}}
+.badge-danger{background:${hexToRgbStr(c.danger,.15)};color:var(--danger);border:1px solid ${hexToRgbStr(c.danger,.3)}}
+.badge-warning{background:${hexToRgbStr(c.warning,.15)};color:var(--warning);border:1px solid ${hexToRgbStr(c.warning,.3)}}
+.badge-info{background:${hexToRgbStr(c.info,.15)};color:var(--info);border:1px solid ${hexToRgbStr(c.info,.3)}}
+
+/* Utils */
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.grid-3{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+.grid-4{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}
+.mt-2{margin-top:16px}.mb-2{margin-bottom:16px}
+.flex-between{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+.empty{padding:40px;text-align:center;color:var(--text-muted);font-size:13px}
+.scope-box{display:flex;flex-wrap:wrap;gap:8px;padding:16px;background:var(--bg-primary);border-radius:6px;border:1px solid var(--border-color);max-height:280px;overflow-y:auto}
+.scope-item{cursor:pointer;font-size:12px;display:inline-flex;align-items:center;gap:8px;padding:8px 12px;border-radius:6px;background:var(--bg-secondary);border:1px solid var(--border-color);color:var(--text-secondary);transition:var(--tr);font-weight:500}
+.scope-item:hover{border-color:var(--accent);color:var(--text-primary)}
+.scope-item input{margin:0}
+.scope-item.checked{background:${hexToRgbStr(c.accent,.15)};border-color:var(--accent);color:var(--accent)}
+
+/* Toast */
+.toast{position:fixed;top:24px;right:24px;z-index:99999;padding:14px 20px;border-radius:8px;font-weight:600;font-size:13px;animation:slideIn .3s cubic-bezier(0.4,0,0.2,1);max-width:400px;background:var(--bg-card);border:1px solid;box-shadow:0 10px 25px -5px rgba(0,0,0,0.5)}
 .toast.success{border-color:var(--success);color:var(--success)}
 .toast.error{border-color:var(--danger);color:var(--danger)}
 .toast.warning{border-color:var(--warning);color:var(--warning)}
 .toast.info{border-color:var(--info);color:var(--info)}
-.tabs{display:flex;gap:4px;border-bottom:1px solid var(--border-color);margin-bottom:20px;flex-wrap:wrap}
-.tab{padding:10px 16px;cursor:pointer;font-size:12.5px;font-weight:600;color:var(--text-muted);border-bottom:2px solid transparent;transition:var(--tr);margin-bottom:-1px}
-.tab:hover{color:var(--text-primary)}
-.tab.active{color:var(--accent);border-bottom-color:var(--accent)}
-.scope-box{display:flex;flex-wrap:wrap;gap:6px;padding:12px;background:var(--bg-primary);border-radius:5px;border:1px solid var(--border-color);max-height:260px;overflow-y:auto}
-.scope-item{cursor:pointer;font-size:11.5px;display:inline-flex;align-items:center;gap:6px;padding:5px 10px;border-radius:4px;background:var(--bg-secondary);border:1px solid var(--border-color);color:var(--text-secondary);transition:var(--tr)}
-.scope-item:hover{border-color:var(--accent);color:var(--text-primary)}
-.scope-item input{accent-color:var(--accent);margin:0;width:auto}
-.scope-item.checked{background:${hexToRgbStr(c.accent,.15)};border-color:${hexToRgbStr(c.accent,.4)};color:var(--accent)}
-.empty{padding:40px 20px;text-align:center;color:var(--text-muted);font-size:13px}
-.mono{font-family:${theme.fonts.mono}}
-.text-center{text-align:center}
-.text-muted{color:var(--text-muted)}
-.text-success{color:var(--success)}
-.text-danger{color:var(--danger)}
-.text-warning{color:var(--warning)}
-.text-accent{color:var(--accent)}
-.mt-1{margin-top:8px}.mt-2{margin-top:16px}.mt-3{margin-top:24px}
-.mb-1{margin-bottom:8px}.mb-2{margin-bottom:16px}.mb-3{margin-bottom:24px}
-.divider{border:none;border-top:1px solid var(--border-color);margin:20px 0}
-.flex{display:flex}.flex-between{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
-.gap-2{gap:10px}.gap-3{gap:16px}
 @keyframes slideIn{from{transform:translateX(120%);opacity:0}to{transform:translateX(0);opacity:1}}
-@media(max-width:768px){
-    .sidebar{width:64px}
-    .sidebar-title, .sidebar-subtitle, .sidebar-nav a span{display:none}
-    .sidebar-header{padding:14px 8px;text-align:center}
-    .sidebar-nav a{justify-content:center;padding:12px}
-    .main-content{margin-left:64px;padding:14px}
+
+/* Mobile */
+@media(max-width:900px){
+    .sidebar{width:70px}
+    .sidebar-header{justify-content:center;padding:16px 8px}
+    .sidebar-title, .sidebar-subtitle, .sidebar-nav a span, .nav-section{display:none}
+    .sidebar-nav a{justify-content:center;padding:14px;border-left:none !important;border-radius:8px}
+    .main-content{margin-left:70px;padding:20px}
     .grid-2,.grid-3,.grid-4{grid-template-columns:1fr}
-    .stats-grid{grid-template-columns:repeat(2,1fr)}
 }
 </style>`;
 }
 
 // ============================================================
-// LOGIN PAGE
+// RENDER LOGIN
 // ============================================================
 function renderLogin(){
     return `<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><title>Admin Login · BRONX OSINT</title>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 ${generateCSS()}
 <style>
-body{display:flex;align-items:center;justify-content:center;min-height:100vh;padding:20px}
-.login-box{width:100%;max-width:380px;position:relative;z-index:10}
-.login-header{text-align:center;margin-bottom:28px}
-.login-logo{display:inline-block;width:56px;height:56px;line-height:56px;background:var(--accent);color:#fff;border-radius:10px;font-weight:800;font-size:20px;margin-bottom:14px;letter-spacing:-1px}
-.login-title{font-size:20px;font-weight:700;color:var(--text-primary);margin-bottom:4px}
-.login-sub{font-size:12px;color:var(--text-muted)}
-.login-form{background:var(--bg-card);border:1px solid var(--border-color);border-radius:8px;padding:28px 24px}
-.msg{text-align:center;margin-top:14px;font-size:12.5px;font-weight:500;min-height:18px}
+body{display:flex;align-items:center;justify-content:center;min-height:100vh;padding:20px;background:var(--bg-primary)}
+.login-box{width:100%;max-width:420px;position:relative;z-index:10}
+.login-header{text-align:center;margin-bottom:32px}
+.login-logo{display:inline-flex;align-items:center;justify-content:center;width:64px;height:64px;background:linear-gradient(135deg, var(--accent), var(--accent2));color:#fff;border-radius:16px;font-weight:800;font-size:24px;margin-bottom:20px;box-shadow:0 8px 24px ${hexToRgbStr(theme.colors.accent,.4)}}
+.login-title{font-size:24px;font-weight:800;color:var(--text-primary);margin-bottom:8px;letter-spacing:-0.5px}
+.login-sub{font-size:13px;color:var(--text-muted);font-weight:500}
+.login-form{background:var(--bg-card);border:1px solid var(--border-color);border-radius:12px;padding:32px;box-shadow:0 20px 40px -10px rgba(0,0,0,0.5)}
+.msg{text-align:center;margin-top:16px;font-size:13px;font-weight:600;min-height:20px}
 </style></head><body>
 <div class="grid-bg"></div>
 <div class="login-box">
 <div class="login-header">
 <div class="login-logo">B</div>
 <div class="login-title">BRONX OSINT</div>
-<div class="login-sub">Admin Access · V503 ULTRA</div>
+<div class="login-sub">Admin Access Console</div>
 </div>
 <div class="login-form">
 <div class="form-group"><label>Username</label><input type="text" id="username" placeholder="Enter username" autocomplete="off"></div>
 <div class="form-group"><label>Password</label><input type="password" id="password" placeholder="Enter password" autocomplete="off"></div>
-<button class="btn btn-primary btn-block" onclick="doLogin()" id="loginBtn">Sign In</button>
+<button class="btn btn-primary btn-block" onclick="doLogin()" id="loginBtn" style="margin-top:8px">Sign In</button>
 <div class="msg" id="message"></div>
 </div>
 </div>
@@ -1236,7 +1230,7 @@ document.addEventListener('keydown',e=>{if(e.key==='Enter')doLogin()});
 }
 
 // ============================================================
-// HOME PAGE (Public Dashboard)
+// RENDER PUBLIC DASHBOARD
 // ============================================================
 function renderHome(){
     const visibleAPIs = customAPIs.filter(a => a.visible);
@@ -1244,105 +1238,84 @@ function renderHome(){
     const customList = visibleAPIs.map(a => ({ endpoint:a.endpoint, p:a.param, e:a.example, d:a.name, c:a.desc||'Custom API', isCustom:true }));
     const allAPIs = [...builtinList, ...customList];
 
-    const announcementHTML = announcement.enabled ? `<div class="announce-bar">${esc(announcement.text)}</div>` : '';
-    const maintenanceHTML = maintenance.enabled ? `<div class="maint-overlay"><div class="maint-box"><div class="maint-icon">!</div><h1>MAINTENANCE</h1><p>${esc(maintenance.message)}</p></div></div>` : '';
+    const announcementHTML = announcement.enabled ? `<div style="position:fixed;top:0;left:0;right:0;z-index:9998;padding:12px 20px;text-align:center;font-size:13px;font-weight:700;background:linear-gradient(90deg, var(--accent), var(--accent2));color:#fff">${esc(announcement.text)}</div>` : '';
+    const maintenanceHTML = maintenance.enabled ? `<div style="position:fixed;inset:0;z-index:99999;background:var(--bg-primary);display:flex;align-items:center;justify-content:center;padding:40px;text-align:center"><div><div style="display:inline-block;width:80px;height:80px;line-height:80px;background:${hexToRgbStr(theme.colors.warning,.15)};color:var(--warning);border:2px solid var(--warning);border-radius:20px;font-weight:800;font-size:36px;margin-bottom:24px">!</div><h1 style="font-size:32px;font-weight:800;color:var(--warning);letter-spacing:2px;margin-bottom:16px">MAINTENANCE</h1><p style="color:var(--text-secondary);font-size:16px">${esc(maintenance.message)}</p></div></div>` : '';
 
     return `<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><title>BRONX OSINT API · Developer Platform</title>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 ${generateCSS()}
 <style>
-body{padding-top:${announcement.enabled?'44px':'0'}}
-.topbar{position:sticky;top:0;z-index:100;background:var(--bg-secondary);border-bottom:1px solid var(--border-color);padding:14px 28px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px}
-.topbar-brand{display:flex;align-items:center;gap:10px;font-weight:700;color:var(--text-primary);font-size:14px;letter-spacing:0.3px}
-.topbar-brand .badge-logo{width:30px;height:30px;line-height:30px;text-align:center;background:var(--accent);color:#fff;border-radius:6px;font-weight:800;font-size:13px}
-.topbar-links{display:flex;gap:8px;align-items:center}
-.topbar-links a{color:var(--text-secondary);text-decoration:none;font-size:12.5px;font-weight:500;padding:7px 14px;border-radius:5px;transition:var(--tr);border:1px solid transparent}
-.topbar-links a:hover{color:var(--text-primary);border-color:var(--border-color);background:var(--bg-primary);text-decoration:none}
-.status-dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--success);margin-right:6px;box-shadow:0 0 0 3px ${hexToRgbStr(theme.colors.success,.2)};animation:pulse 2s infinite}
-@keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}
-.hero{text-align:center;padding:48px 24px 32px;max-width:900px;margin:0 auto;position:relative;z-index:10}
-.hero-badge{display:inline-block;padding:6px 14px;background:${hexToRgbStr(theme.colors.accent,.1)};color:var(--accent);border:1px solid ${hexToRgbStr(theme.colors.accent,.3)};border-radius:20px;font-size:11px;font-weight:600;letter-spacing:0.8px;text-transform:uppercase;margin-bottom:20px}
-.hero h1{font-size:clamp(28px,5vw,42px);font-weight:800;color:var(--text-primary);margin-bottom:12px;letter-spacing:-1px;line-height:1.15}
-.hero h1 span{background:linear-gradient(135deg,var(--accent),var(--accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
-.hero p{color:var(--text-secondary);font-size:15px;max-width:600px;margin:0 auto;line-height:1.65}
+body{padding-top:${announcement.enabled?'48px':'0'};background:var(--bg-primary)}
+.topbar{position:sticky;top:0;z-index:100;background:${hexToRgbStr(theme.colors.bgSecondary,.8)};backdrop-filter:blur(12px);border-bottom:1px solid var(--border-color);padding:16px 32px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:16px}
+.brand{display:flex;align-items:center;gap:12px;font-weight:800;color:var(--text-primary);font-size:16px;letter-spacing:-0.5px}
+.brand-icon{width:32px;height:32px;line-height:32px;text-align:center;background:linear-gradient(135deg, var(--accent), var(--accent2));color:#fff;border-radius:8px;font-weight:900;font-size:16px;box-shadow:0 4px 12px ${hexToRgbStr(theme.colors.accent,.3)}}
+.hero{text-align:center;padding:80px 24px 60px;max-width:900px;margin:0 auto;position:relative;z-index:10}
+.hero-badge{display:inline-block;padding:8px 16px;background:${hexToRgbStr(theme.colors.accent,.1)};color:var(--accent);border:1px solid ${hexToRgbStr(theme.colors.accent,.3)};border-radius:24px;font-size:12px;font-weight:700;letter-spacing:1px;text-transform:uppercase;margin-bottom:24px}
+.hero h1{font-size:clamp(36px,6vw,56px);font-weight:800;color:var(--text-primary);margin-bottom:20px;letter-spacing:-1.5px;line-height:1.1}
+.hero h1 span{background:linear-gradient(135deg, var(--accent), var(--accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.hero p{color:var(--text-secondary);font-size:16px;max-width:600px;margin:0 auto;line-height:1.7}
 .container{max-width:1100px;margin:0 auto;padding:24px;position:relative;z-index:10}
-.section{margin-bottom:48px}
-.section-head{display:flex;justify-content:space-between;align-items:flex-end;gap:12px;margin-bottom:20px;flex-wrap:wrap}
-.section-head h2{font-size:19px;font-weight:700;color:var(--text-primary);letter-spacing:-0.3px}
-.section-head p{font-size:13px;color:var(--text-muted);margin-top:4px}
-.api-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px}
-.api-card{background:var(--bg-card);border:1px solid var(--border-color);border-radius:8px;padding:18px;transition:var(--tr);cursor:pointer}
-.api-card:hover{border-color:var(--accent);transform:translateY(-2px)}
-.api-card.active{border-color:var(--accent);background:${hexToRgbStr(theme.colors.accent,.06)};box-shadow:0 0 0 3px ${hexToRgbStr(theme.colors.accent,.15)}}
-.api-card-top{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:10px}
-.api-card-name{font-size:14px;font-weight:600;color:var(--text-primary);line-height:1.3}
-.api-card-tag{font-size:10px;padding:3px 7px;border-radius:4px;background:${hexToRgbStr(theme.colors.success,.15)};color:var(--success);border:1px solid ${hexToRgbStr(theme.colors.success,.3)};text-transform:uppercase;font-weight:600;letter-spacing:0.4px;white-space:nowrap}
+.section-head{margin-bottom:24px}
+.section-head h2{font-size:22px;font-weight:800;color:var(--text-primary);letter-spacing:-0.5px}
+.section-head p{font-size:14px;color:var(--text-muted);margin-top:4px}
+.tester-box{background:var(--bg-card);border:1px solid var(--border-color);border-radius:12px;overflow:hidden;margin-bottom:48px;box-shadow:0 20px 40px -10px rgba(0,0,0,0.3)}
+.tester-head{padding:20px 24px;background:var(--bg-secondary);border-bottom:1px solid var(--border-color);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px}
+.tester-head h3{font-size:16px;font-weight:700;color:var(--text-primary)}
+.tester-body{padding:24px}
+.result-box{background:#050505;border:1px solid var(--border-color);border-radius:8px;padding:20px;font-family:${theme.fonts.mono};font-size:13px;color:#e4e4e7;max-height:400px;overflow:auto;white-space:pre;tab-size:2;line-height:1.6}
+.result-box .key{color:#818cf8}
+.result-box .str{color:#34d399}
+.result-box .num{color:#f472b6}
+.result-box .bool{color:#fbbf24}
+.result-box .null{color:#9ca3af}
+.result-meta{padding:12px 20px;background:var(--bg-secondary);border-top:1px solid var(--border-color);font-size:12px;color:var(--text-muted);font-family:${theme.fonts.mono};display:flex;justify-content:space-between;flex-wrap:wrap;gap:12px}
+.api-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px;margin-bottom:40px}
+.api-card{background:var(--bg-card);border:1px solid var(--border-color);border-radius:10px;padding:20px;transition:var(--tr);cursor:pointer}
+.api-card:hover{border-color:var(--accent);transform:translateY(-3px);box-shadow:0 10px 25px -5px ${hexToRgbStr(theme.colors.accent,.2)}}
+.api-card.active{border-color:var(--accent);background:${hexToRgbStr(theme.colors.accent,.05)};box-shadow:0 0 0 2px ${hexToRgbStr(theme.colors.accent,.3)}}
+.api-card-top{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:12px}
+.api-card-name{font-size:15px;font-weight:700;color:var(--text-primary)}
+.api-card-tag{font-size:10px;padding:4px 10px;border-radius:6px;background:${hexToRgbStr(theme.colors.success,.15)};color:var(--success);border:1px solid ${hexToRgbStr(theme.colors.success,.3)};text-transform:uppercase;font-weight:700;letter-spacing:0.5px}
 .api-card-tag.custom{background:${hexToRgbStr(theme.colors.purple,.15)};color:var(--purple);border-color:${hexToRgbStr(theme.colors.purple,.3)}}
-.api-card-ep{font-family:${theme.fonts.mono};font-size:11.5px;color:var(--text-muted);margin-bottom:10px;word-break:break-all}
-.api-card-param{font-size:12px;color:var(--text-secondary);padding-top:10px;border-top:1px solid var(--border-color)}
-.api-card-param code{font-size:11px}
-.tester-box{background:var(--bg-card);border:1px solid var(--border-color);border-radius:10px;overflow:hidden;margin-bottom:24px}
-.tester-head{padding:16px 20px;background:var(--bg-secondary);border-bottom:1px solid var(--border-color);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px}
-.tester-head h3{font-size:14px;font-weight:600;color:var(--text-primary);display:flex;align-items:center;gap:8px}
-.tester-body{padding:20px}
-.tester-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px}
-@media(max-width:640px){.tester-row{grid-template-columns:1fr}}
-.result-box{background:#010409;border:1px solid var(--border-color);border-radius:6px;padding:16px;font-family:${theme.fonts.mono};font-size:12px;color:#c9d1d9;max-height:500px;overflow:auto;white-space:pre;tab-size:2;line-height:1.6}
-.result-box .key{color:#79c0ff}
-.result-box .str{color:#a5d6ff}
-.result-box .num{color:#79c0ff}
-.result-box .bool{color:#ff7b72}
-.result-box .null{color:#8b949e}
-.result-meta{padding:10px 16px;background:var(--bg-secondary);border-top:1px solid var(--border-color);font-size:11.5px;color:var(--text-muted);font-family:${theme.fonts.mono};display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px}
-.footer{text-align:center;padding:40px 24px;border-top:1px solid var(--border-color);margin-top:40px;position:relative;z-index:10;color:var(--text-muted);font-size:12.5px}
-.footer a{color:var(--accent)}
-.announce-bar{position:fixed;top:0;left:0;right:0;z-index:9998;padding:11px 20px;text-align:center;font-size:12.5px;font-weight:600;background:var(--accent);color:#fff}
-.maint-overlay{position:fixed;inset:0;z-index:99999;background:var(--bg-primary);display:flex;align-items:center;justify-content:center;padding:40px;text-align:center}
-.maint-box{max-width:500px}
-.maint-icon{display:inline-block;width:72px;height:72px;line-height:72px;background:${hexToRgbStr(theme.colors.warning,.15)};color:var(--warning);border:2px solid var(--warning);border-radius:16px;font-weight:800;font-size:32px;margin-bottom:20px}
-.maint-box h1{font-size:26px;font-weight:800;color:var(--warning);letter-spacing:2px;margin-bottom:12px}
-.maint-box p{color:var(--text-secondary);font-size:14px}
-.no-sel{user-select:none}
+.api-card-ep{font-family:${theme.fonts.mono};font-size:12px;color:var(--text-muted);margin-bottom:12px;word-break:break-all}
+.api-card-param{font-size:12px;color:var(--text-secondary);padding-top:12px;border-top:1px solid var(--border-color)}
+.footer{text-align:center;padding:48px 24px;border-top:1px solid var(--border-color);color:var(--text-muted);font-size:13px}
 </style></head><body>
 <div class="grid-bg"></div>
 ${announcementHTML}${maintenanceHTML}
 <nav class="topbar">
-<div class="topbar-brand"><span class="badge-logo">B</span>BRONX OSINT API</div>
-<div class="topbar-links">
-<a href="/test"><span class="status-dot"></span>System Status</a>
-</div>
+<div class="brand"><span class="brand-icon">B</span>BRONX OSINT API</div>
+<div><span class="badge badge-success">System Online</span></div>
 </nav>
 <header class="hero">
-<div class="hero-badge">V503 ULTRA · Developer Platform</div>
+<div class="hero-badge">Developer Platform V504</div>
 <h1>OSINT Intelligence <span>API Platform</span></h1>
 <p>Professional grade intelligence APIs with smart DDoS protection, developer-friendly architecture, and comprehensive data endpoints.</p>
 </header>
 <div class="container">
-<div class="section">
-<div class="section-head"><div><h2>API Playground</h2><p>Select an endpoint, enter your parameter, and test the API live</p></div></div>
 <div class="tester-box">
 <div class="tester-head">
-<h3 id="testerTitle">Select an endpoint below to begin</h3>
+<h3 id="testerTitle">API Playground</h3>
 <span class="badge badge-info" id="testerBadge">Ready</span>
 </div>
 <div class="tester-body">
-<div class="tester-row">
+<div class="grid-2">
 <div class="form-group"><label>API Endpoint</label>
 <select id="apiSelect" class="form-input" onchange="onApiChange()">
-<option value="">-- Choose API --</option>
-${allAPIs.map(a => `<option value="${esc(a.endpoint)}" data-p="${esc(a.p)}" data-e="${esc(a.e)}" data-d="${esc(a.d)}" data-custom="${a.isCustom?1:0}">${esc(a.d)} (${a.isCustom?'/custom/':'/key-bronx/'}${esc(a.endpoint)})</option>`).join('')}
+<option value="">-- Select an API --</option>
+${allAPIs.map(a => `<option value="${esc(a.endpoint)}" data-p="${esc(a.p)}" data-e="${esc(a.e)}" data-d="${esc(a.d)}" data-custom="${a.isCustom?1:0}">${esc(a.d)} (/${esc(a.endpoint)})</option>`).join('')}
 </select></div>
 <div class="form-group"><label id="paramLabel">Parameter Value</label>
 <input type="text" id="paramInput" placeholder="Enter value" onkeydown="if(event.key==='Enter')runQuery()"></div>
 </div>
 <div class="form-group"><label>API Key (Optional for preview)</label>
-<input type="text" id="keyInput" placeholder="Paste your API key to get live result with rate limits" class="mono" style="font-size:12px"></div>
-<div class="flex gap-2">
+<input type="text" id="keyInput" placeholder="Paste your API key to get live result" class="mono" style="font-family:monospace"></div>
+<div class="flex-between mb-2">
+<div style="display:flex;gap:12px">
 <button class="btn btn-primary" onclick="runQuery()" id="runBtn">Run Query</button>
 <button class="btn" onclick="clearResult()">Clear</button>
 </div>
-<div class="mt-2"><label style="display:block;margin-bottom:6px;color:var(--text-secondary);font-size:11.5px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px">JSON Response</label></div>
-<div class="tester-box" style="margin:0;border-radius:6px">
+</div>
 <div class="result-box" id="resultBox">{
   "status": "waiting",
   "message": "Select an API and run a query to see the result"
@@ -1350,20 +1323,16 @@ ${allAPIs.map(a => `<option value="${esc(a.endpoint)}" data-p="${esc(a.p)}" data
 <div class="result-meta" id="resultMeta"><span>No request made yet</span><span>Response will appear here</span></div>
 </div>
 </div>
-</div>
-</div>
-<div class="section">
-<div class="section-head"><div><h2>Available Endpoints</h2><p>${allAPIs.length} total APIs including custom integrations</p></div></div>
+<div class="section-head"><h2>Available Endpoints</h2><p>${allAPIs.length} total APIs including custom integrations</p></div>
 <div class="api-grid">
 ${allAPIs.map(a => `<div class="api-card" data-endpoint="${esc(a.endpoint)}" onclick="selectCard('${esc(a.endpoint)}')">
 <div class="api-card-top"><div class="api-card-name">${esc(a.d)}</div><div class="api-card-tag ${a.isCustom?'custom':''}">${a.isCustom?'Custom':'Built-in'}</div></div>
-<div class="api-card-ep">${a.isCustom?'/api/custom/':'/api/key-bronx/'}${esc(a.endpoint)}</div>
+<div class="api-card-ep">/api/${a.isCustom?'custom':'key-bronx'}/${esc(a.endpoint)}</div>
 <div class="api-card-param">Param: <code>${esc(a.p)}</code> · Example: <code>${esc(a.e)}</code></div>
 </div>`).join('')}
 </div>
 </div>
-</div>
-<footer class="footer">Powered by <strong style="color:var(--accent)">${esc(globalConfig.developerName)}</strong> · BRONX OSINT V503 ULTRA</footer>
+<footer class="footer">Powered by <strong style="color:var(--accent)">${esc(globalConfig.developerName)}</strong> · BRONX OSINT V504</footer>
 <script>
 const ALL_APIS = ${JSON.stringify(allAPIs)};
 let currentApi = null;
@@ -1376,7 +1345,7 @@ function onApiChange(){
     const sel = document.getElementById('apiSelect');
     const opt = sel.options[sel.selectedIndex];
     document.querySelectorAll('.api-card').forEach(c=>c.classList.remove('active'));
-    if(!sel.value){currentApi=null;document.getElementById('testerTitle').textContent='Select an endpoint below to begin';document.getElementById('testerBadge').textContent='Ready';document.getElementById('paramLabel').textContent='Parameter Value';return}
+    if(!sel.value){currentApi=null;document.getElementById('testerTitle').textContent='API Playground';document.getElementById('testerBadge').textContent='Ready';document.getElementById('paramLabel').textContent='Parameter Value';return}
     currentApi = {endpoint:sel.value, param:opt.dataset.p, example:opt.dataset.e, name:opt.dataset.d, isCustom:opt.dataset.custom==='1'};
     document.getElementById('testerTitle').textContent = currentApi.name;
     document.getElementById('testerBadge').textContent = currentApi.isCustom?'Custom API':'Built-in API';
@@ -1387,10 +1356,10 @@ function onApiChange(){
     if(card) card.classList.add('active');
 }
 async function runQuery(){
-    if(!currentApi){showToast('Please select an API first','warning');return}
+    if(!currentApi){alert('Please select an API first');return}
     const param = document.getElementById('paramInput').value.trim();
     const key = document.getElementById('keyInput').value.trim();
-    if(!param){showToast('Please enter a parameter value','warning');return}
+    if(!param){alert('Please enter a parameter value');return}
     const runBtn = document.getElementById('runBtn');
     runBtn.disabled = true; runBtn.textContent = 'Running...';
     const resultBox = document.getElementById('resultBox');
@@ -1437,18 +1406,11 @@ function syntaxHighlight(obj){
         return '<span class="'+cls+'">'+match+'</span>';
     });
 }
-function showToast(msg,type){
-    const t = document.createElement('div');
-    t.className = 'toast '+(type||'info');
-    t.textContent = msg;
-    document.body.appendChild(t);
-    setTimeout(()=>t.remove(),3500);
-}
 </script></body></html>`;
 }
 
 // ============================================================
-// ADMIN PANEL RENDERER
+// RENDER ADMIN PANEL
 // ============================================================
 function renderAdmin(token){
     try{
@@ -1465,16 +1427,14 @@ function renderAdmin(token){
         }));
 
         const endpointNames = Object.keys(endpoints);
-        const customEP = customAPIs.map(a => a.endpoint);
 
-        return `<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><title>Admin · BRONX OSINT V503</title>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+        return `<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><title>Admin · BRONX OSINT V504</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 ${generateCSS()}
 <style>
-.main-content{padding-top:20px}
-.nav-section{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--text-muted);padding:16px 20px 6px}
-.tab-section{display:none}
+.tab-section{display:none;animation:fadeIn 0.3s}
 .tab-section.active{display:block}
+@keyframes fadeIn{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:translateY(0)}}
 </style>
 </head><body>
 <div class="grid-bg"></div>
@@ -1482,8 +1442,10 @@ ${generateCSS()}
 <aside class="sidebar">
 <div class="sidebar-header">
 <div class="sidebar-logo">B</div>
-<div class="sidebar-title">BRONX V503</div>
+<div>
+<div class="sidebar-title">BRONX V504</div>
 <div class="sidebar-subtitle">Admin Console</div>
+</div>
 </div>
 <ul class="sidebar-nav">
 <div class="nav-section">Overview</div>
@@ -1500,8 +1462,8 @@ ${generateCSS()}
 <li><a data-tab="responses" onclick="switchTab('responses',this)"><i class="fas fa-code"></i><span>Edit Responses</span></a></li>
 <li><a data-tab="apis" onclick="switchTab('apis',this)"><i class="fas fa-plug"></i><span>Custom APIs</span></a></li>
 <li><a data-tab="addapi" onclick="switchTab('addapi',this)"><i class="fas fa-plus-square"></i><span>Add API</span></a></li>
-<div class="nav-section">Response Config</div>
-<li><a data-tab="response-settings" onclick="switchTab('response-settings',this)"><i class="fas fa-sliders-h"></i><span>Developer & Messages</span></a></li>
+<div class="nav-section">Config</div>
+<li><a data-tab="response-settings" onclick="switchTab('response-settings',this)"><i class="fas fa-sliders-h"></i><span>Dev & Messages</span></a></li>
 <li><a data-tab="protect" onclick="switchTab('protect',this)"><i class="fas fa-shield-alt"></i><span>Protection</span></a></li>
 <div class="nav-section">Security</div>
 <li><a data-tab="ddos" onclick="switchTab('ddos',this)"><i class="fas fa-shield-virus"></i><span>DDoS Config</span></a></li>
@@ -1533,7 +1495,7 @@ ${generateCSS()}
 
 <div class="tab-section active" id="tab-dashboard">
 <div class="card">
-<h3><i class="fas fa-fire"></i> Overview</h3>
+<h3>Overview</h3>
 <div class="grid-4">
 <div class="stat-card"><div class="stat-icon">Today</div><div class="stat-value" id="dashToday">-</div><div class="stat-label">Requests</div></div>
 <div class="stat-card"><div class="stat-icon">Week</div><div class="stat-value" id="dashWeek">-</div><div class="stat-label">Requests</div></div>
@@ -1542,16 +1504,16 @@ ${generateCSS()}
 </div>
 </div>
 <div class="card">
-<h3><i class="fas fa-trophy"></i> Top Keys</h3>
+<h3>Top Keys</h3>
 <div class="table-container"><table><thead><tr><th>Key</th><th>Requests</th></tr></thead><tbody id="topKeysBody"><tr><td colspan="2" class="empty">Loading...</td></tr></tbody></table></div>
 </div>
 </div>
 
 <div class="tab-section" id="tab-generate">
 <div class="card">
-<h3><i class="fas fa-wand-magic-sparkles"></i> Generate New Key</h3>
+<h3>Generate New Key</h3>
 <div class="form-group"><label>Key ID (leave empty for random)</label><input type="text" id="gk" placeholder="MY_CUSTOM_KEY"></div>
-<button class="btn btn-warning btn-block mb-2" onclick="randomKey()"><i class="fas fa-dice"></i> Generate Random Key ID</button>
+<button class="btn btn-warning btn-block mb-2" onclick="randomKey()">Generate Random Key ID</button>
 <div class="form-group"><label>Owner Name *</label><input type="text" id="go" placeholder="Client or user name"></div>
 <div class="form-group"><label>Custom Developer Name (optional)</label><input type="text" id="gdev" placeholder="Leave empty to use global default"></div>
 <div class="form-group"><label>Custom Hidden Fields (optional, comma-separated)</label><input type="text" id="ghidden" placeholder="e.g. credit,by,channel"></div>
@@ -1569,13 +1531,13 @@ ${generateCSS()}
 <div class="scope-box" id="scopeBoxGenerate">
 <label class="scope-item checked"><input type="checkbox" value="*" checked> <span>All Access</span></label>
 </div></div>
-<button class="btn btn-primary btn-block" onclick="generateKey()"><i class="fas fa-rocket"></i> Generate Key</button>
+<button class="btn btn-primary btn-block" onclick="generateKey()">Generate Key</button>
 </div>
 </div>
 
 <div class="tab-section" id="tab-keys">
 <div class="card">
-<h3><i class="fas fa-key"></i> All Keys (<span id="keysCount">${allKeys.length}</span>)</h3>
+<h3>All Keys (<span id="keysCount">${allKeys.length}</span>)</h3>
 <div class="flex-between mb-2">
 <input type="text" id="keysFilter" placeholder="Filter by key or owner..." style="flex:1;min-width:200px" oninput="filterKeys()">
 <button class="btn" onclick="loadKeys()"><i class="fas fa-sync"></i></button>
@@ -1591,7 +1553,7 @@ ${generateCSS()}
 
 <div class="tab-section" id="tab-endpoints">
 <div class="card">
-<h3><i class="fas fa-list"></i> Endpoints (${endpointNames.length})</h3>
+<h3>Endpoints (${endpointNames.length})</h3>
 <div class="table-container">
 <table><thead><tr><th>Endpoint</th><th>Description</th><th>Parameter</th><th>Example</th><th>URL</th></tr></thead><tbody>
 ${endpointNames.map(n => `<tr><td><code>${esc(n)}</code></td><td>${esc(endpoints[n].d)}</td><td><code>${esc(endpoints[n].p)}</code></td><td><code>${esc(endpoints[n].e)}</code></td><td class="mono" style="font-size:11px">/api/key-bronx/${esc(n)}?key=KEY&${esc(endpoints[n].p)}=VALUE</td></tr>`).join('')}
@@ -1602,8 +1564,8 @@ ${endpointNames.map(n => `<tr><td><code>${esc(n)}</code></td><td>${esc(endpoints
 
 <div class="tab-section" id="tab-responses">
 <div class="card">
-<h3><i class="fas fa-code"></i> Edit Endpoint Responses (JSON)</h3>
-<p class="text-muted mb-2" style="font-size:12px">This JSON will be shown to users on the public dashboard when they test any endpoint. Users will see this exact response in the "JSON Response" area.</p>
+<h3>Edit Endpoint Responses (JSON)</h3>
+<p class="text-muted mb-2" style="font-size:13px">This JSON will be shown to users on the public dashboard when they test any endpoint. Users will see this exact response.</p>
 <div class="form-group"><label>Endpoint</label>
 <select id="responseEndpoint" class="form-input" onchange="loadResponse()">
 ${endpointNames.map(e => `<option value="${e}">${esc(endpoints[e].d)} (/${e})</option>`).join('')}
@@ -1611,39 +1573,39 @@ ${customAPIs.map(a => `<option value="${esc(a.endpoint)}">${esc(a.name)} (/${esc
 </select></div>
 <div class="form-group"><label>Response JSON (leave empty for default)</label>
 <textarea id="responseData" rows="12" placeholder='{\n  "status": "success",\n  "data": {...}\n}'></textarea></div>
-<button class="btn btn-primary btn-block" onclick="updateResponse()"><i class="fas fa-save"></i> Save Response</button>
+<button class="btn btn-primary btn-block" onclick="updateResponse()">Save Response</button>
 </div>
 </div>
 
 <div class="tab-section" id="tab-response-settings">
 <div class="card">
-<h3><i class="fas fa-sliders-h"></i> Global Response Settings</h3>
-<div class="form-group"><label>Global Developer Name (shown at bottom of all API responses)</label>
+<h3>Global Response Settings</h3>
+<div class="form-group"><label>Global Developer Name</label>
 <input type="text" id="rs-devName" value="${esc(globalConfig.developerName)}"></div>
 <div class="form-group"><label>Show Developer Name in responses</label>
 <select id="rs-showDevName"><option value="true" ${globalConfig.showDevName?'selected':''}>Yes — Show developer name</option><option value="false" ${!globalConfig.showDevName?'selected':''}>No — Hide completely</option></select></div>
-<div class="form-group"><label>Global Hidden Fields (comma-separated, will be removed from ALL responses)</label>
+<div class="form-group"><label>Global Hidden Fields (comma-separated)</label>
 <textarea id="rs-hiddenFields" rows="3">${esc(globalConfig.hiddenFields)}</textarea></div>
-<hr class="divider">
-<h4>Custom Error Messages (plain text, emojis supported)</h4>
+<hr style="border-color:var(--border-color);margin:24px 0">
+<h4 style="margin-bottom:16px">Custom Error Messages (Emojis supported)</h4>
 <div class="grid-2">
 <div class="form-group"><label>Key Not Found</label><input type="text" id="msg-keyNotFound" value="${esc(customMessages.keyNotFound)}"></div>
-<div class="form-group"><label>Limit Reached ({used} and {limit} are replaced)</label><input type="text" id="msg-limitReached" value="${esc(customMessages.limitReached)}"></div>
+<div class="form-group"><label>Limit Reached</label><input type="text" id="msg-limitReached" value="${esc(customMessages.limitReached)}"></div>
 <div class="form-group"><label>Key Stopped</label><input type="text" id="msg-keyStopped" value="${esc(customMessages.keyStopped)}"></div>
 <div class="form-group"><label>Key Disabled</label><input type="text" id="msg-keyDisabled" value="${esc(customMessages.keyDisabled)}"></div>
-<div class="form-group"><label>Key Expired ({date} is replaced)</label><input type="text" id="msg-keyExpired" value="${esc(customMessages.keyExpired)}"></div>
+<div class="form-group"><label>Key Expired</label><input type="text" id="msg-keyExpired" value="${esc(customMessages.keyExpired)}"></div>
 <div class="form-group"><label>Missing Key</label><input type="text" id="msg-missingKey" value="${esc(customMessages.missingKey)}"></div>
 <div class="form-group"><label>Scope Denied</label><input type="text" id="msg-scopeDenied" value="${esc(customMessages.scopeDenied)}"></div>
 <div class="form-group"><label>Protected Data</label><input type="text" id="msg-protected" value="${esc(customMessages.protected)}"></div>
 <div class="form-group"><label>API Error</label><input type="text" id="msg-apiError" value="${esc(customMessages.apiError)}"></div>
 </div>
-<button class="btn btn-primary btn-block" onclick="saveResponseSettings()"><i class="fas fa-save"></i> Save All Settings</button>
+<button class="btn btn-primary btn-block mt-2" onclick="saveResponseSettings()">Save All Settings</button>
 </div>
 </div>
 
 <div class="tab-section" id="tab-monitor">
 <div class="card">
-<h3><i class="fas fa-desktop"></i> Live Monitor</h3>
+<h3>Live Monitor</h3>
 <div class="flex-between mb-2">
 <input type="text" id="monitorFilter" placeholder="Filter logs..." style="flex:1;min-width:200px" oninput="renderMonitor()">
 <button class="btn" onclick="loadMonitorLogs()"><i class="fas fa-sync"></i></button>
@@ -1656,7 +1618,7 @@ ${customAPIs.map(a => `<option value="${esc(a.endpoint)}">${esc(a.name)} (/${esc
 
 <div class="tab-section" id="tab-stats">
 <div class="card">
-<h3><i class="fas fa-chart-bar"></i> Statistics</h3>
+<h3>Statistics</h3>
 <div class="grid-4">
 <div class="stat-card"><div class="stat-icon">Total</div><div class="stat-value" id="statTotalReqs">-</div><div class="stat-label">All Time</div></div>
 <div class="stat-card"><div class="stat-icon">Today</div><div class="stat-value" id="statTodayReqs">-</div><div class="stat-label">Requests</div></div>
@@ -1665,61 +1627,61 @@ ${customAPIs.map(a => `<option value="${esc(a.endpoint)}">${esc(a.name)} (/${esc
 </div>
 </div>
 <div class="card">
-<h3><i class="fas fa-chart-pie"></i> Top Endpoints</h3>
+<h3>Top Endpoints</h3>
 <div class="table-container"><table><thead><tr><th>Endpoint</th><th>Requests</th></tr></thead><tbody id="topEndpointsBody"><tr><td colspan="2" class="empty">Loading...</td></tr></tbody></table></div>
 </div>
 </div>
 
 <div class="tab-section" id="tab-theme">
 <div class="card">
-<h3><i class="fas fa-palette"></i> Theme</h3>
+<h3>Theme Presets</h3>
 <div class="grid-3">
-${themesList.map(name => `<div class="api-card" style="cursor:pointer;text-align:center" onclick="applyPresetByName('${name}')"><div style="height:48px;border-radius:6px;margin-bottom:12px;background:linear-gradient(135deg,${PRESETS[name].accent},${PRESETS[name].accent2})"></div><div style="font-weight:600;color:var(--text-primary)">${name}</div></div>`).join('')}
+${themesList.map(name => `<div class="api-card" style="cursor:pointer;text-align:center" onclick="applyPresetByName('${name}')"><div style="height:56px;border-radius:8px;margin-bottom:16px;background:linear-gradient(135deg,${PRESETS[name].accent},${PRESETS[name].accent2})"></div><div style="font-weight:700;color:var(--text-primary)">${name}</div></div>`).join('')}
 </div>
 </div>
 </div>
 
 <div class="tab-section" id="tab-import">
 <div class="card">
-<h3><i class="fas fa-download"></i> Import Data</h3>
+<h3>Import Data</h3>
 <div class="form-group"><label>Upload JSON File (keys or full backup)</label>
 <input type="file" id="importFile" accept=".json" onchange="handleFileImport(this)"></div>
 <div class="form-group"><label>Or paste JSON manually</label>
 <textarea id="importData" rows="10" placeholder='{"keys": {...}, "apis": [...]}'></textarea></div>
-<button class="btn btn-primary btn-block" onclick="importKeys()"><i class="fas fa-download"></i> Import</button>
-<p id="importMsg" class="text-center mt-2" style="font-size:12.5px"></p>
+<button class="btn btn-primary btn-block" onclick="importKeys()">Import</button>
+<p id="importMsg" class="text-center mt-2" style="font-size:13px"></p>
 </div>
 </div>
 
 <div class="tab-section" id="tab-export">
 <div class="card">
-<h3><i class="fas fa-upload"></i> Export Keys</h3>
-<p class="text-muted mb-2" style="font-size:12.5px">Copy or download all your generated keys as JSON. Use the Import tab to restore them later.</p>
+<h3>Export Keys</h3>
+<p class="text-muted mb-2" style="font-size:13px">Copy or download all your generated keys as JSON. Use the Import tab to restore them later.</p>
 <textarea id="exportData" rows="12" readonly placeholder="Click Load below to fetch keys"></textarea>
 <div class="grid-2 mt-2">
-<button class="btn btn-primary" onclick="loadExport()"><i class="fas fa-sync"></i> Load</button>
-<button class="btn btn-success" onclick="copyExport()"><i class="fas fa-copy"></i> Copy</button>
+<button class="btn btn-primary" onclick="loadExport()">Load</button>
+<button class="btn btn-success" onclick="copyExport()">Copy</button>
 </div>
-<button class="btn btn-warning btn-block mt-2" onclick="downloadExport()"><i class="fas fa-download"></i> Download JSON File</button>
+<button class="btn btn-warning btn-block mt-2" onclick="downloadExport()">Download JSON File</button>
 </div>
 </div>
 
 <div class="tab-section" id="tab-backup">
 <div class="card">
-<h3><i class="fas fa-database"></i> Full Backup</h3>
-<p class="text-muted mb-2" style="font-size:12.5px">Download complete backup: keys, custom APIs, responses, settings, themes, everything.</p>
-<button class="btn btn-success btn-block mb-2" onclick="downloadFullBackup()"><i class="fas fa-download"></i> Download Full Backup</button>
-<hr class="divider">
+<h3>Full Backup</h3>
+<p class="text-muted mb-2" style="font-size:13px">Download complete backup: keys, custom APIs, responses, settings, themes, everything.</p>
+<button class="btn btn-success btn-block mb-2" onclick="downloadFullBackup()">Download Full Backup</button>
+<hr style="border-color:var(--border-color);margin:24px 0">
 <h4>Restore from Backup</h4>
 <div class="form-group"><label>Upload backup JSON file</label><input type="file" id="restoreFile" accept=".json" onchange="handleRestoreFile(this)"></div>
 <div class="form-group"><label>Or paste backup JSON</label><textarea id="restoreData" rows="8" placeholder="Paste backup JSON here"></textarea></div>
-<button class="btn btn-warning btn-block" onclick="restoreData()"><i class="fas fa-upload"></i> Restore Backup</button>
+<button class="btn btn-warning btn-block" onclick="restoreData()">Restore Backup</button>
 </div>
 </div>
 
 <div class="tab-section" id="tab-scopes">
 <div class="card">
-<h3><i class="fas fa-bullseye"></i> Update Key Scopes</h3>
+<h3>Update Key Scopes</h3>
 <div class="form-group"><label>Key Name</label><input type="text" id="sk" placeholder="Enter key name"></div>
 <div class="form-group"><label>Scopes</label>
 <div class="scope-box" id="scopeBoxUpdate">
@@ -1727,22 +1689,22 @@ ${themesList.map(name => `<div class="api-card" style="cursor:pointer;text-align
 <label class="scope-item"><input type="checkbox" value="custom"> <span>All Custom APIs</span></label>
 ${endpointNames.map(n => `<label class="scope-item"><input type="checkbox" value="${esc(n)}"> <span>${esc(n)}</span></label>`).join('')}
 </div></div>
-<button class="btn btn-primary btn-block" onclick="updateScopes()"><i class="fas fa-save"></i> Update Scopes</button>
+<button class="btn btn-primary btn-block" onclick="updateScopes()">Update Scopes</button>
 </div>
 </div>
 
 <div class="tab-section" id="tab-protect">
 <div class="card">
-<h3><i class="fas fa-shield-alt"></i> Data Protection</h3>
+<h3>Data Protection</h3>
 <div class="form-group"><label>Value to Protect (numbers, IDs blocked from lookup)</label><input type="text" id="protVal" placeholder="e.g. 9876543210"></div>
-<button class="btn btn-primary btn-block" onclick="addProtection()"><i class="fas fa-lock"></i> Add Protection</button>
+<button class="btn btn-primary btn-block" onclick="addProtection()">Add Protection</button>
 <div class="table-container mt-2" id="protectList"><table><thead><tr><th>Protected Value</th><th>Action</th></tr></thead><tbody id="protectBody"><tr><td colspan="2" class="empty">Loading...</td></tr></tbody></table></div>
 </div>
 </div>
 
 <div class="tab-section" id="tab-apis">
 <div class="card">
-<h3><i class="fas fa-plug"></i> Custom APIs (<span id="apiCount">${customAPIs.length}</span>)</h3>
+<h3>Custom APIs (<span id="apiCount">${customAPIs.length}</span>)</h3>
 <div class="table-container" style="max-height:550px">
 <table><thead><tr><th>Name</th><th>Endpoint</th><th>Param</th><th>Visible</th><th>Actions</th></tr></thead><tbody id="apisBody"><tr><td colspan="5" class="empty">Loading...</td></tr></tbody></table>
 </div>
@@ -1751,7 +1713,7 @@ ${endpointNames.map(n => `<label class="scope-item"><input type="checkbox" value
 
 <div class="tab-section" id="tab-addapi">
 <div class="card">
-<h3><i class="fas fa-plus-square"></i> Add Custom API</h3>
+<h3>Add Custom API</h3>
 <div class="form-group"><label>Name *</label><input type="text" id="aname" placeholder="My API"></div>
 <div class="form-group"><label>Endpoint (lowercase, dashes only) *</label><input type="text" id="aep" placeholder="my-api"></div>
 <div class="grid-2">
@@ -1760,13 +1722,13 @@ ${endpointNames.map(n => `<label class="scope-item"><input type="checkbox" value
 </div>
 <div class="form-group"><label>Real API URL (use {param} placeholder)</label><input type="text" id="aurl" placeholder="https://api.example.com?q={param}"></div>
 <div class="form-group"><label>Description</label><input type="text" id="adesc" placeholder="Short description"></div>
-<button class="btn btn-primary btn-block" onclick="addAPI()"><i class="fas fa-plus"></i> Add API</button>
+<button class="btn btn-primary btn-block" onclick="addAPI()">Add API</button>
 </div>
 </div>
 
 <div class="tab-section" id="tab-ddos">
 <div class="card">
-<h3><i class="fas fa-shield-virus"></i> DDoS Configuration</h3>
+<h3>DDoS Configuration</h3>
 <div class="form-group"><label>Protection Mode</label>
 <select id="ddosMode">
 <option value="off" ${ddosConfig.mode==='off'?'selected':''}>Off — No protection</option>
@@ -1778,27 +1740,27 @@ ${endpointNames.map(n => `<label class="scope-item"><input type="checkbox" value
 <div class="form-group"><label>IP / Minute</label><input type="number" id="ddosIP1M" value="${ddosConfig.ip.perMinute}"></div>
 <div class="form-group"><label>IP / Hour</label><input type="number" id="ddosIP1H" value="${ddosConfig.ip.perHour}"></div>
 </div>
-<button class="btn btn-primary btn-block" onclick="saveDDOS()"><i class="fas fa-save"></i> Save Configuration</button>
-<button class="btn btn-warning btn-block mt-2" onclick="clearAllStrikes()"><i class="fas fa-eraser"></i> Clear All Strikes</button>
+<button class="btn btn-primary btn-block" onclick="saveDDOS()">Save Configuration</button>
+<button class="btn btn-warning btn-block mt-2" onclick="clearAllStrikes()">Clear All Strikes</button>
 </div>
 </div>
 
 <div class="tab-section" id="tab-bans">
 <div class="card">
-<h3><i class="fas fa-ban"></i> Bans Manager</h3>
+<h3>Bans Manager</h3>
 <div class="grid-3 mb-2">
 <select id="banType"><option value="ip">IP</option><option value="device">Device</option><option value="key">Key</option></select>
 <input type="text" id="banId" placeholder="Value to ban">
-<button class="btn btn-danger" onclick="manualBan()"><i class="fas fa-ban"></i> Ban</button>
+<button class="btn btn-danger" onclick="manualBan()">Ban</button>
 </div>
 <div class="table-container"><table><thead><tr><th>Type</th><th>ID</th><th>Reason</th><th>Until</th><th>Action</th></tr></thead><tbody id="bansBody"><tr><td colspan="5" class="empty">Loading...</td></tr></tbody></table></div>
-<button class="btn btn-warning btn-block mt-2" onclick="unbanAll()"><i class="fas fa-unlock"></i> Unban All</button>
+<button class="btn btn-warning btn-block mt-2" onclick="unbanAll()">Unban All</button>
 </div>
 </div>
 
 <div class="tab-section" id="tab-devices">
 <div class="card">
-<h3><i class="fas fa-laptop"></i> Tracked Devices</h3>
+<h3>Tracked Devices</h3>
 <div class="table-container" style="max-height:600px">
 <table><thead><tr><th>Device ID</th><th>Type</th><th>OS</th><th>Requests</th><th>Last Seen</th><th>Status</th><th>Action</th></tr></thead><tbody id="devicesBody"><tr><td colspan="7" class="empty">Loading...</td></tr></tbody></table>
 </div>
@@ -1807,55 +1769,55 @@ ${endpointNames.map(n => `<label class="scope-item"><input type="checkbox" value
 
 <div class="tab-section" id="tab-bulk">
 <div class="card">
-<h3><i class="fas fa-layer-group"></i> Bulk Actions</h3>
-<p class="text-warning mb-2" style="font-size:12.5px">Select keys from the "All Keys" tab first.</p>
-<p class="text-center mb-2" id="bulkCount" style="color:var(--accent);font-size:13px">0 keys selected</p>
+<h3>Bulk Actions</h3>
+<p class="text-warning mb-2" style="font-size:13px">Select keys from the "All Keys" tab first.</p>
+<p class="text-center mb-2" id="bulkCount" style="color:var(--accent);font-size:14px;font-weight:600">0 keys selected</p>
 <div class="grid-2">
-<button class="btn btn-success" onclick="bulkAction('bulk-reset')"><i class="fas fa-sync"></i> Reset Usage</button>
-<button class="btn btn-warning" onclick="bulkAction('bulk-stop',true)"><i class="fas fa-pause"></i> Stop</button>
-<button class="btn btn-primary" onclick="bulkAction('bulk-stop',false)"><i class="fas fa-play"></i> Activate</button>
-<button class="btn btn-warning" onclick="bulkAction('bulk-disable',true)"><i class="fas fa-ban"></i> Disable</button>
-<button class="btn btn-primary" onclick="bulkAction('bulk-disable',false)"><i class="fas fa-check"></i> Enable</button>
-<button class="btn btn-danger" onclick="bulkAction('bulk-delete')"><i class="fas fa-trash"></i> Delete</button>
+<button class="btn btn-success" onclick="bulkAction('bulk-reset')">Reset Usage</button>
+<button class="btn btn-warning" onclick="bulkAction('bulk-stop',true)">Stop</button>
+<button class="btn btn-primary" onclick="bulkAction('bulk-stop',false)">Activate</button>
+<button class="btn btn-warning" onclick="bulkAction('bulk-disable',true)">Disable</button>
+<button class="btn btn-primary" onclick="bulkAction('bulk-disable',false)">Enable</button>
+<button class="btn btn-danger" onclick="bulkAction('bulk-delete')">Delete</button>
 </div>
-<div class="flex gap-2 mt-2">
-<input type="number" id="bulkPushDays" value="30" placeholder="Days">
-<button class="btn btn-warning" onclick="bulkPush()" style="white-space:nowrap"><i class="fas fa-arrow-up"></i> Push Days</button>
+<div class="flex-between mt-2 gap-2" style="display:flex">
+<input type="number" id="bulkPushDays" value="30" placeholder="Days" style="flex:1">
+<button class="btn btn-warning" onclick="bulkPush()">Push Days</button>
 </div>
 </div>
 </div>
 
 <div class="tab-section" id="tab-pushall">
 <div class="card">
-<h3><i class="fas fa-arrow-up"></i> Push All Keys</h3>
+<h3>Push All Keys</h3>
 <div class="form-group"><label>Days to add to ALL keys</label><input type="number" id="pushAllDays" value="30"></div>
-<button class="btn btn-warning btn-block" onclick="pushAllKeys()"><i class="fas fa-arrow-up"></i> Push All Keys</button>
+<button class="btn btn-warning btn-block" onclick="pushAllKeys()">Push All Keys</button>
 </div>
 </div>
 
 <div class="tab-section" id="tab-announce">
 <div class="card">
-<h3><i class="fas fa-bullhorn"></i> Announcement</h3>
+<h3>Announcement</h3>
 <div class="form-group"><label>Enable</label>
 <select id="annEnabled"><option value="false" ${!announcement.enabled?'selected':''}>Off</option><option value="true" ${announcement.enabled?'selected':''}>On</option></select></div>
 <div class="form-group"><label>Text</label><input type="text" id="annText" value="${esc(announcement.text)}" placeholder="Welcome to BRONX OSINT!"></div>
-<button class="btn btn-primary btn-block" onclick="saveAnnouncement()"><i class="fas fa-save"></i> Save</button>
+<button class="btn btn-primary btn-block" onclick="saveAnnouncement()">Save</button>
 </div>
 </div>
 
 <div class="tab-section" id="tab-maintenance">
 <div class="card">
-<h3><i class="fas fa-wrench"></i> Maintenance Mode</h3>
+<h3>Maintenance Mode</h3>
 <div class="form-group"><label>Enable</label>
 <select id="mtEnabled"><option value="false" ${!maintenance.enabled?'selected':''}>Off</option><option value="true" ${maintenance.enabled?'selected':''}>On</option></select></div>
 <div class="form-group"><label>Message</label><input type="text" id="mtMessage" value="${esc(maintenance.message)}"></div>
-<button class="btn btn-warning btn-block" onclick="saveMaintenance()"><i class="fas fa-save"></i> Save</button>
+<button class="btn btn-warning btn-block" onclick="saveMaintenance()">Save</button>
 </div>
 </div>
 
 <div class="tab-section" id="tab-audit">
 <div class="card">
-<h3><i class="fas fa-clipboard-list"></i> Audit Log</h3>
+<h3>Audit Log</h3>
 <div class="table-container" style="max-height:520px">
 <table><thead><tr><th>Time</th><th>User</th><th>Action</th><th>Details</th></tr></thead><tbody id="auditBody"><tr><td colspan="4" class="empty">Loading...</td></tr></tbody></table>
 </div>
@@ -1864,7 +1826,7 @@ ${endpointNames.map(n => `<label class="scope-item"><input type="checkbox" value
 
 <div class="tab-section" id="tab-adminlogs">
 <div class="card">
-<h3><i class="fas fa-history"></i> Admin Logs</h3>
+<h3>Admin Logs</h3>
 <div class="table-container" style="max-height:520px">
 <table><thead><tr><th>Time</th><th>User</th><th>Action</th><th>IP</th><th>Status</th></tr></thead><tbody id="adminLogsBody"><tr><td colspan="5" class="empty">Loading...</td></tr></tbody></table>
 </div>
@@ -1873,11 +1835,11 @@ ${endpointNames.map(n => `<label class="scope-item"><input type="checkbox" value
 
 <div class="tab-section" id="tab-settings">
 <div class="card">
-<h3><i class="fas fa-cog"></i> System Settings</h3>
-<button class="btn btn-warning btn-block mb-2" onclick="resetAll()"><i class="fas fa-sync"></i> Reset All Key Usage</button>
-<button class="btn btn-danger btn-block mb-2" onclick="clearLogs()"><i class="fas fa-trash"></i> Clear All Logs</button>
-<button class="btn btn-warning btn-block mb-2" onclick="unbanAll()"><i class="fas fa-unlock"></i> Unban All</button>
-<button class="btn btn-warning btn-block" onclick="clearAllStrikes()"><i class="fas fa-eraser"></i> Clear All Strikes</button>
+<h3>System Settings</h3>
+<button class="btn btn-warning btn-block mb-2" onclick="resetAll()">Reset All Key Usage</button>
+<button class="btn btn-danger btn-block mb-2" onclick="clearLogs()">Clear All Logs</button>
+<button class="btn btn-warning btn-block mb-2" onclick="unbanAll()">Unban All</button>
+<button class="btn btn-warning btn-block" onclick="clearAllStrikes()">Clear All Strikes</button>
 </div>
 </div>
 
@@ -1889,15 +1851,12 @@ const ADMIN_PATH = '${ADMIN_PATH}';
 const ENDPOINTS_LIST = ${JSON.stringify(endpointNames)};
 const CUSTOM_APIS_INIT = ${JSON.stringify(customAPIs)};
 const ALL_KEYS_INIT = ${JSON.stringify(allKeys)};
-const INITIAL_ANNOUNCEMENT = ${JSON.stringify(announcement)};
-const INITIAL_MAINTENANCE = ${JSON.stringify(maintenance)};
 
 let ALL_KEYS = ALL_KEYS_INIT.slice();
 let selectedKeys = new Set();
 let MONITOR_LOGS = [];
 
 function h(tag){ return document.querySelector('#'+tag); }
-function api(path){ return ADMIN_PATH + path + (path.includes('?')?'&':'?') + 'token=' + TOKEN; }
 function apiPost(path, body){
     return fetch(ADMIN_PATH + path + '?token=' + TOKEN, {
         method:'POST',
@@ -1917,7 +1876,6 @@ function toast(msg,type){
     document.body.appendChild(t);
     setTimeout(()=>t.remove(),3200);
 }
-function esc(s){ return s==null?'':String(s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'})[m]); }
 
 function switchTab(name, el){
     document.querySelectorAll('.tab-section').forEach(x => x.classList.remove('active'));
@@ -1925,8 +1883,7 @@ function switchTab(name, el){
     const sec = document.getElementById('tab-'+name);
     if(sec) sec.classList.add('active');
     if(el) el.classList.add('active');
-    document.querySelector('.main-content').scrollTo(0,0);
-    // load data per tab
+    
     if(name==='dashboard') loadDashboard();
     if(name==='keys') loadKeys();
     if(name==='monitor') loadMonitorLogs();
@@ -1946,19 +1903,15 @@ async function loadDashboard(){
         const d = await apiGet('/stats');
         h('statToday').textContent = d.todayRequests || 0;
         h('statTotal').textContent = d.totalRequests || 0;
-        h('statBans').textContent = (Object.keys(${JSON.stringify({})}) ? 0 : 0);
         h('dashToday').textContent = d.todayRequests || 0;
         h('dashWeek').textContent = d.weeklyRequests || 0;
         h('dashMonth').textContent = d.monthlyRequests || 0;
         h('dashTotal').textContent = d.totalRequests || 0;
         const tk = h('topKeysBody');
         if(!d.topKeys || !d.topKeys.length){ tk.innerHTML = '<tr><td colspan="2" class="empty">No data yet</td></tr>'; }
-        else { tk.innerHTML = d.topKeys.map(x => '<tr><td><code>'+esc(x.k)+'</code></td><td>'+x.v+'</td></tr>').join(''); }
+        else { tk.innerHTML = d.topKeys.map(x => '<tr><td><code>'+x.k+'</code></td><td>'+x.v+'</td></tr>').join(''); }
     }catch(e){ console.log(e); }
-    try{
-        const stats = await apiGet('/stats');
-        h('statDevices').textContent = Object.keys(stats.topDevices||{}).length || 0;
-    }catch(e){}
+    
     try{
         const b = await apiGet('/bans');
         const c = (b.ip||[]).length + (b.device||[]).length + (b.key||[]).length;
@@ -2002,22 +1955,22 @@ function renderKeys(filter){
     const rows = ALL_KEYS.filter(k => !q || k.key.toLowerCase().includes(q) || (k.name||'').toLowerCase().includes(q));
     if(!rows.length){ body.innerHTML = '<tr><td colspan="10" class="empty">No matching keys</td></tr>'; return; }
     body.innerHTML = rows.map(k => {
-        const status = k.stopped ? '<span class="badge badge-warning">Stopped</span>' : k.disabled ? '<span class="badge badge-muted">Disabled</span>' : k.isExpired ? '<span class="badge badge-danger">Expired</span>' : '<span class="badge badge-success">Active</span>';
+        const status = k.stopped ? '<span class="badge badge-warning">Stopped</span>' : k.disabled ? '<span class="badge badge-danger">Disabled</span>' : k.isExpired ? '<span class="badge badge-danger">Expired</span>' : '<span class="badge badge-success">Active</span>';
         return '<tr>'+
-            '<td><input type="checkbox" data-key="'+esc(k.key)+'" '+(selectedKeys.has(k.key)?'checked':'')+' onchange="toggleKeySelection(this)"></td>'+
-            '<td><code style="font-size:10.5px">'+esc(k.key)+'</code></td>'+
-            '<td>'+esc(k.name)+'</td>'+
-            '<td>'+esc(k.limit)+'</td>'+
-            '<td>'+esc(k.used)+'</td>'+
-            '<td>'+esc(k.left)+'</td>'+
-            '<td style="font-size:11px">'+esc(k.expiry)+'</td>'+
-            '<td style="font-size:11px;color:var(--accent)">'+esc(k.developerName||'—')+'</td>'+
+            '<td><input type="checkbox" data-key="'+k.key+'" '+(selectedKeys.has(k.key)?'checked':'')+' onchange="toggleKeySelection(this)"></td>'+
+            '<td><code style="font-size:11px">'+k.key+'</code></td>'+
+            '<td>'+k.name+'</td>'+
+            '<td>'+k.limit+'</td>'+
+            '<td>'+k.used+'</td>'+
+            '<td>'+k.left+'</td>'+
+            '<td style="font-size:12px">'+k.expiry+'</td>'+
+            '<td style="font-size:12px;color:var(--accent);font-weight:600">'+(k.developerName||'—')+'</td>'+
             '<td>'+status+'</td>'+
             '<td style="white-space:nowrap">'+
-                '<button class="btn btn-sm" onclick="editKeyUI(\''+esc(k.key)+'\')" title="Edit">Edit</button> '+
-                '<button class="btn btn-sm" onclick="cloneKey(\''+esc(k.key)+'\')" title="Clone">Clone</button> '+
-                '<button class="btn btn-sm btn-warning" onclick="stopKey(\''+esc(k.key)+'\')">'+(k.stopped?'Start':'Stop')+'</button> '+
-                '<button class="btn btn-sm btn-danger" onclick="deleteKey(\''+esc(k.key)+'\')">Del</button>'+
+                '<button class="btn btn-sm" onclick="editKeyUI(\''+k.key+'\')">Edit</button> '+
+                '<button class="btn btn-sm" onclick="cloneKey(\''+k.key+'\')">Clone</button> '+
+                '<button class="btn btn-sm btn-warning" onclick="stopKey(\''+k.key+'\')">'+(k.stopped?'Start':'Stop')+'</button> '+
+                '<button class="btn btn-sm btn-danger" onclick="deleteKey(\''+k.key+'\')">Del</button>'+
             '</td>'+
             '</tr>';
     }).join('');
@@ -2124,12 +2077,12 @@ function renderMonitor(){
     const body = h('monitorBody');
     if(!rows.length){ body.innerHTML = '<tr><td colspan="6" class="empty">No logs yet</td></tr>'; return; }
     body.innerHTML = rows.slice(-300).reverse().map(l => '<tr>'+
-        '<td style="font-size:11px;color:var(--text-muted)">'+esc(l.timestamp)+'</td>'+
-        '<td><code style="font-size:10.5px">'+esc(l.key)+'</code></td>'+
-        '<td><code style="font-size:11px">'+esc(l.endpoint)+'</code></td>'+
-        '<td style="font-size:11.5px">'+esc(l.ip)+'</td>'+
-        '<td style="font-size:11px">'+esc(l.deviceType)+' / '+esc(l.browser)+'</td>'+
-        '<td style="font-size:11px">'+esc(l.country||'-')+'</td>'+
+        '<td style="font-size:12px;color:var(--text-muted)">'+l.timestamp+'</td>'+
+        '<td><code style="font-size:11px">'+l.key+'</code></td>'+
+        '<td><code style="font-size:12px">'+l.endpoint+'</code></td>'+
+        '<td style="font-size:12px">'+l.ip+'</td>'+
+        '<td style="font-size:12px">'+l.deviceType+' / '+l.browser+'</td>'+
+        '<td style="font-size:12px">'+(l.country||'-')+'</td>'+
     '</tr>').join('');
 }
 
@@ -2143,7 +2096,7 @@ async function loadStats(){
         h('statMonthReqs').textContent = d.monthlyRequests || 0;
         const tb = h('topEndpointsBody');
         if(!d.topEndpoints || !d.topEndpoints.length){ tb.innerHTML = '<tr><td colspan="2" class="empty">No data</td></tr>'; }
-        else tb.innerHTML = d.topEndpoints.map(x => '<tr><td><code>'+esc(x.k)+'</code></td><td>'+x.v+'</td></tr>').join('');
+        else tb.innerHTML = d.topEndpoints.map(x => '<tr><td><code>'+x.k+'</code></td><td>'+x.v+'</td></tr>').join('');
     }catch(e){ console.log(e); }
 }
 
@@ -2157,11 +2110,11 @@ async function loadBans(){
     const body = h('bansBody');
     if(!rows.length){ body.innerHTML = '<tr><td colspan="5" class="empty">No active bans</td></tr>'; return; }
     body.innerHTML = rows.map(b => '<tr>'+
-        '<td><span class="badge badge-info">'+esc(b.type)+'</span></td>'+
-        '<td><code style="font-size:11px">'+esc(b.id)+'</code></td>'+
-        '<td style="font-size:11.5px">'+esc(b.reason||'-')+'</td>'+
-        '<td style="font-size:11.5px">'+(b.permanent?'Permanent':(b.until?new Date(b.until).toLocaleString():'-'))+'</td>'+
-        '<td><button class="btn btn-sm btn-danger" onclick="unbanOne(\''+esc(b.type)+'\',\''+esc(b.id)+'\')">Unban</button></td>'+
+        '<td><span class="badge badge-info">'+b.type+'</span></td>'+
+        '<td><code style="font-size:12px">'+b.id+'</code></td>'+
+        '<td style="font-size:12px">'+(b.reason||'-')+'</td>'+
+        '<td style="font-size:12px">'+(b.permanent?'Permanent':(b.until?new Date(b.until).toLocaleString():'-'))+'</td>'+
+        '<td><button class="btn btn-sm btn-danger" onclick="unbanOne(\''+b.type+'\',\''+b.id+'\')">Unban</button></td>'+
     '</tr>').join('');
 }
 async function unbanOne(type, id){
@@ -2187,13 +2140,13 @@ async function loadDevices(){
     const body = h('devicesBody');
     if(!r.devices || !r.devices.length){ body.innerHTML = '<tr><td colspan="7" class="empty">No devices tracked yet</td></tr>'; return; }
     body.innerHTML = r.devices.map(d => '<tr>'+
-        '<td><code style="font-size:10.5px">'+esc(d.id.substring(0,20))+'...</code></td>'+
-        '<td style="font-size:11.5px">'+esc(d.deviceType)+'</td>'+
-        '<td style="font-size:11.5px">'+esc(d.os||'-')+'</td>'+
-        '<td>'+esc(d.requests)+'</td>'+
-        '<td style="font-size:11px">'+esc(d.lastSeen||'-')+'</td>'+
+        '<td><code style="font-size:11px">'+d.id.substring(0,20)+'...</code></td>'+
+        '<td style="font-size:12px">'+d.deviceType+'</td>'+
+        '<td style="font-size:12px">'+(d.os||'-')+'</td>'+
+        '<td>'+d.requests+'</td>'+
+        '<td style="font-size:12px">'+(d.lastSeen||'-')+'</td>'+
         '<td>'+(d.banned?'<span class="badge badge-danger">Banned</span>':'<span class="badge badge-success">OK</span>')+'</td>'+
-        '<td>'+(d.banned?'<button class="btn btn-sm" onclick="unbanOne(\'device\',\''+esc(d.id)+'\')">Unban</button>':'<button class="btn btn-sm btn-danger" onclick="banDevice(\''+esc(d.id)+'\')">Ban</button>')+'</td>'+
+        '<td>'+(d.banned?'<button class="btn btn-sm" onclick="unbanOne(\'device\',\''+d.id+'\')">Unban</button>':'<button class="btn btn-sm btn-danger" onclick="banDevice(\''+d.id+'\')">Ban</button>')+'</td>'+
     '</tr>').join('');
 }
 async function banDevice(id){
@@ -2244,7 +2197,7 @@ async function loadProtectList(){
     const r = await apiGet('/protect-list');
     const body = h('protectBody');
     if(!r.list || !r.list.length){ body.innerHTML = '<tr><td colspan="2" class="empty">No protected values</td></tr>'; return; }
-    body.innerHTML = r.list.map(v => '<tr><td><code>'+esc(v)+'</code></td><td><button class="btn btn-sm btn-danger" onclick="removeProtection(\''+esc(v)+'\')">Remove</button></td></tr>').join('');
+    body.innerHTML = r.list.map(v => '<tr><td><code>'+v+'</code></td><td><button class="btn btn-sm btn-danger" onclick="removeProtection(\''+v+'\')">Remove</button></td></tr>').join('');
 }
 async function removeProtection(v){
     const r = await apiPost('/remove-protection', { value:v });
@@ -2253,15 +2206,14 @@ async function removeProtection(v){
 
 // ---- Custom APIs ----
 async function loadCustomAPIs(){
-    const r = await apiGet('/export-keys'); // placeholder
     const body = h('apisBody');
     const list = CUSTOM_APIS_INIT;
     if(!list.length){ body.innerHTML = '<tr><td colspan="5" class="empty">No custom APIs</td></tr>'; return; }
     body.innerHTML = list.map(a => '<tr>'+
-        '<td>'+esc(a.name)+'</td>'+
-        '<td><code>'+esc(a.endpoint)+'</code></td>'+
-        '<td><code>'+esc(a.param)+'</code></td>'+
-        '<td>'+(a.visible?'<span class="badge badge-success">Yes</span>':'<span class="badge badge-muted">No</span>')+'</td>'+
+        '<td>'+a.name+'</td>'+
+        '<td><code>'+a.endpoint+'</code></td>'+
+        '<td><code>'+a.param+'</code></td>'+
+        '<td>'+(a.visible?'<span class="badge badge-success">Yes</span>':'<span class="badge badge-danger">No</span>')+'</td>'+
         '<td style="white-space:nowrap">'+
             '<button class="btn btn-sm" onclick="toggleAPI('+a.id+')">Toggle</button> '+
             '<button class="btn btn-sm btn-danger" onclick="deleteAPI('+a.id+')">Del</button>'+
@@ -2313,10 +2265,10 @@ async function loadAudit(){
     const body = h('auditBody');
     if(!r.logs || !r.logs.length){ body.innerHTML = '<tr><td colspan="4" class="empty">No audit entries</td></tr>'; return; }
     body.innerHTML = r.logs.slice(-300).reverse().map(l => '<tr>'+
-        '<td style="font-size:11px">'+esc(l.timestamp)+'</td>'+
-        '<td>'+esc(l.user)+'</td>'+
-        '<td><code style="font-size:11px">'+esc(l.action)+'</code></td>'+
-        '<td style="font-size:11px">'+esc(JSON.stringify(l.details))+'</td>'+
+        '<td style="font-size:12px">'+l.timestamp+'</td>'+
+        '<td>'+l.user+'</td>'+
+        '<td><code style="font-size:12px">'+l.action+'</code></td>'+
+        '<td style="font-size:12px">'+JSON.stringify(l.details)+'</td>'+
     '</tr>').join('');
 }
 async function loadAdminLogs(){
@@ -2324,10 +2276,10 @@ async function loadAdminLogs(){
     const body = h('adminLogsBody');
     if(!r.logs || !r.logs.length){ body.innerHTML = '<tr><td colspan="5" class="empty">No admin logs</td></tr>'; return; }
     body.innerHTML = r.logs.slice(-300).reverse().map(l => '<tr>'+
-        '<td style="font-size:11px">'+esc(l.timestamp)+'</td>'+
-        '<td>'+esc(l.user)+'</td>'+
-        '<td><code style="font-size:11px">'+esc(l.action)+'</code></td>'+
-        '<td style="font-size:11px">'+esc(l.ip)+'</td>'+
+        '<td style="font-size:12px">'+l.timestamp+'</td>'+
+        '<td>'+l.user+'</td>'+
+        '<td><code style="font-size:12px">'+l.action+'</code></td>'+
+        '<td style="font-size:12px">'+l.ip+'</td>'+
         '<td>'+(l.status==='SUCCESS'?'<span class="badge badge-success">OK</span>':'<span class="badge badge-danger">Fail</span>')+'</td>'+
     '</tr>').join('');
 }
@@ -2425,11 +2377,9 @@ async function clearLogs(){
 
 // ---- Init ----
 document.addEventListener('DOMContentLoaded', () => {
-    // Populate scope boxes with all endpoints
     const endpointScopesHTML = ENDPOINTS_LIST.map(n => '<label class="scope-item"><input type="checkbox" value="'+n+'"> <span>'+n+'</span></label>').join('');
     if(h('scopeBoxGenerate')) h('scopeBoxGenerate').insertAdjacentHTML('beforeend', endpointScopesHTML);
     if(h('scopeBoxUpdate')) h('scopeBoxUpdate').insertAdjacentHTML('beforeend', endpointScopesHTML);
-    // check scope toggles
     document.querySelectorAll('.scope-item input[type=checkbox]').forEach(cb => {
         cb.addEventListener('change', function(){
             const label = this.closest('.scope-item');
@@ -2456,7 +2406,7 @@ initCustomAPIs();
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
     console.log('════════════════════════════════════════════════════════');
-    console.log('🛡️  BRONX OSINT V503 ULTRA PROFESSIONAL');
+    console.log('🛡️  BRONX OSINT V504 ULTRA PRO');
     console.log('════════════════════════════════════════════════════════');
     console.log(`✅ Server running on port ${PORT}`);
     console.log(`🌐 Public dashboard: http://localhost:${PORT}/`);

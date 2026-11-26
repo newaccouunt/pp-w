@@ -13,7 +13,7 @@ const app = express();
 // ============================================================
 // ⚙️ CONFIG
 // ============================================================
-const REAL_API_BASE = 'https://ft-osint-api.duckdns.org/api';
+const REAL_API_BASE = 'https://b-osint-api.duckdns.org/api';
 const REAL_API_KEYS = ['bronx-king', 'bronx-ultra-king-ft-bro-op'];
 let currentKeyIndex = 0;
 const getNextKey = () => { const k = REAL_API_KEYS[currentKeyIndex]; currentKeyIndex = (currentKeyIndex + 1) % REAL_API_KEYS.length; return k; };
@@ -1506,9 +1506,8 @@ app.get('/api/sample/:ep', (req,res) => {
 
 // (remaining bulk/apiv/ban/device/etc routes — same as before, saare intact)
 
-// ✅ SAHI
-app.get('/', ...);
-app.use((req,res) => res.status(404).json({error:'Not found'}));
+// 404 fallback — must stay after all routes
+app.use((req, res) => res.status(404).json({ error: 'Not found', path: req.path }));
 
 
 // ============================================================
@@ -2684,7 +2683,6 @@ const PORT = process.env.PORT || 3000;
     console.log('🚀 PORT:', PORT, '| Host: 0.0.0.0');
   });
 
-  // Render ke edge ke saath connection timing fix
   server.keepAliveTimeout = 120000;
   server.headersTimeout = 120000;
 })();

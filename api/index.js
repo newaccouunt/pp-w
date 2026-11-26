@@ -597,15 +597,26 @@ function renderHome(){
   };
 
   // Admin-controlled response sample (per endpoint)
-  const getResponse = (ep) => {
-    const custom = endpointResponses[ep];
-    if(custom) return custom;
-    return `{
+const getResponse = (ep) => {
+  const custom = endpointResponses[ep];
+  if (custom) {
+    // 🔧 FIX: object ho ya string ho — dono handle karo
+    if (typeof custom === 'string') {
+      try {
+        const parsed = JSON.parse(custom);
+        return JSON.stringify(parsed, null, 2);
+      } catch {
+        return custom;
+      }
+    }
+    return JSON.stringify(custom, null, 2);
+  }
+  return `{
   "success": true,
   "endpoint": "${ep}",
   "data": "Add response sample from Admin Panel"
 }`;
-  };
+};
 
   const annBanner = announcement.enabled ? (() => {
     const typeColor = {
@@ -1066,98 +1077,173 @@ document.addEventListener('DOMContentLoaded', function(){
 
 
 // ============================================================
-// 🔌 API ROUTES — BUILT-IN + CUSTOM
+// 🔧 FIX — MAIN API ROUTES (YEH MISSING THAY!)
 // ============================================================
-async function callRealAPI(realPath, params = {}, retries = 2) {
-  const base = REAL_API_BASE.replace(/\/$/, '');
-  const url = `${base}${realPath.startsWith('/') ? '' : '/'}${realPath}`;
-  let lastErr = null;
-  for (let attempt = 0; attempt <= retries; attempt++) {
-    try {
-      const apiKey = getNextKey();
-      const resp = await axios.get(url, {
-        params: { ...params, key: apiKey },
-        timeout: 25000,
-        headers: { 'Accept': 'application/json' },
-        validateStatus: () => true
-      });
-      let data = resp.data;
-      if (typeof data === 'string') { try { data = JSON.parse(data); } catch(_){} }
-      if (resp.status >= 500) { lastErr = new Error('Upstream '+resp.status); continue; }
-      return { ok: resp.status < 400, status: resp.status, data };
-    } catch (e) { lastErr = e; await new Promise(r => setTimeout(r, 400)); }
-  }
-  return { ok: false, status: 503, error: lastErr?.message };
+
+function getKeyFromReq(req) {
+  return req.query.key || req.headers['x-api-key'] || req.query.api_key || '';
 }
 
-function resolveEndpoint(ep) {
-  if (endpoints[ep]) return { kind:'builtin', param:endpoints[ep].p, example:endpoints[ep].e, realPath:'/key-bronx/'+ep };
-  const c = customAPIs.find(a => a.endpoint === ep && a.visible !== false);
-  if (c) return { kind:'custom', param:c.param||'number', example:c.example||'', realAPI:c.realAPI, fallbackAPIs:c.fallbackAPIs||[] };
-  return null;
+function errRes(res, code, msg, extra = {}) {
+  return res.status(code).json({ success: false, error: msg, ...extra });
 }
 
+// ---------- BUILT-IN: /api/key-bronx/:endpoint ----------
 app.get('/api/key-bronx/:endpoint', async (req, res) => {
   try {
-    const epName = req.params.endpoint;
-    const key = req.query.key || req.headers['x-api-key'];
-    if (!key) return res.status(401).json({ error: customMessages.invalidKey });
+    const ep = req.params.endpoint;
+    const key = getKeyFromReq(req);
+    if (!key) return errRes(res, 401, customMessages.invalidKey, { hint: 'Pass ?key=YOUR_KEY' });
+
     const kv = checkKeyValid(key);
-    if (!kv.valid) return res.status(403).json({ error: kv.error });
-    const sc = checkKeyScope(kv.keyData, epName);
-    if (!sc.valid) return res.status(403).json({ error: sc.error });
+    if (!kv.valid) return errRes(res, 403, kv.error);
 
-    const def = resolveEndpoint(epName);
-    if (!def || def.kind !== 'builtin') return res.status(404).json({ error: 'Endpoint not found', endpoint: epName });
+    const sc = checkKeyScope(kv.keyData, ep);
+    if (!sc.valid) return errRes(res, 403, sc.error);
 
-    const pval = req.query[def.param];
-    if (!pval) return res.status(400).json({ error: customMessages.missingParam, required: def.param, example: def.example });
+    const epInfo = endpoints[ep];
+    if (!epInfo) return errRes(res, 404, `Endpoint "${ep}" not found`, { available: Object.keys(endpoints).slice(0, 10) });
 
-    const up = await callRealAPI(def.realPath, { [def.param]: pval });
-    if (!up.ok) return res.status(503).json({ error: 'Upstream error', detail: up.error });
+    const paramValue = req.query[epInfo.p];
+    if (!paramValue) return errRes(res, 400, customMessages.missingParam, { required_param: epInfo.p, example: epInfo.e });
 
-    incrementKeyUsage(key, epName, req);
-    return res.status(200).json({ success: true, endpoint: epName, data: applyBranding(up.data, kv.keyData) });
-  } catch (e) { return res.status(500).json({ error: 'Internal error', detail: e.message }); }
+    const prot = isProtected(paramValue);
+    if (prot && !whitelist.keys.includes(key)) return errRes(res, 403, customMessages.protectedData);
+
+    incrementKeyUsage(key, ep, req);
+
+    const realKey = getNextKey();
+    const targetUrl = `${REAL_API_BASE}/${ep}?${epInfo.p}=${encodeURIComponent(paramValue)}&key=${realKey}`;
+
+    let upstream;
+    try {
+      upstream = await axios.get(targetUrl, {
+        timeout: 25000,
+        headers: { 'User-Agent': 'BRONX-V600/1.0', 'Accept': 'application/json' },
+        validateStatus: () => true
+      });
+    } catch (e) {
+      return errRes(res, 502, 'Upstream API unreachable', { detail: e.message });
+    }
+
+    requestLogs.push({ key: key.substring(0, 8) + '***', endpoint: ep, param: epInfo.p, status: upstream.status, timestamp: getIndiaDateTime(), ip: getRealIP(req) });
+    if (requestLogs.length > 2000) requestLogs = requestLogs.slice(-2000);
+
+    const branded = applyBranding(upstream.data, kv.keyData);
+    res.setHeader('X-RateLimit-Mode', ddosConfig.mode);
+    res.setHeader('X-Bronx-Endpoint', ep);
+    return res.status(upstream.status).json(branded);
+  } catch (e) {
+    console.log('Endpoint err:', e.message);
+    return errRes(res, 500, 'Internal server error', { detail: e.message });
+  }
 });
 
+// ---------- CUSTOM: /api/custom/:endpoint ----------
 app.get('/api/custom/:endpoint', async (req, res) => {
   try {
-    const epName = req.params.endpoint;
-    const key = req.query.key || req.headers['x-api-key'];
-    if (!key) return res.status(401).json({ error: customMessages.invalidKey });
+    const ep = req.params.endpoint;
+    const key = getKeyFromReq(req);
+    if (!key) return errRes(res, 401, customMessages.invalidKey, { hint: 'Pass ?key=YOUR_KEY' });
+
     const kv = checkKeyValid(key);
-    if (!kv.valid) return res.status(403).json({ error: kv.error });
+    if (!kv.valid) return errRes(res, 403, kv.error);
 
-    const scopes = kv.keyData.scopes || [];
-    if (!(scopes.includes('*') || scopes.includes('custom') || scopes.includes('custom:' + epName)))
-      return res.status(403).json({ error: customMessages.scopeDenied });
+    const apiConf = customAPIs.find(a => a.endpoint === ep);
+    if (!apiConf) return errRes(res, 404, `Custom endpoint "${ep}" not found`);
 
-    const def = resolveEndpoint(epName);
-    if (!def || def.kind !== 'custom') return res.status(404).json({ error: 'Custom endpoint not found', endpoint: epName });
+    const sc = checkKeyScope(kv.keyData, 'c/' + ep);
+    if (!sc.valid) return errRes(res, 403, sc.error);
 
-    const pval = req.query[def.param] || req.query.query || req.query.q;
-    if (!pval) return res.status(400).json({ error: customMessages.missingParam, required: def.param, example: def.example });
+    const paramValue = req.query[apiConf.param || 'number'] || req.query.number;
+    if (!paramValue) return errRes(res, 400, customMessages.missingParam, { required_param: apiConf.param, example: apiConf.example });
 
-    const enc = encodeURIComponent(pval);
-    const urls = [def.realAPI.replace('{param}', enc), ...(def.fallbackAPIs || []).map(u => u.replace('{param}', enc))];
-    let data = null, lastErr = null;
-    for (const url of urls) {
-      try {
-        const r = await axios.get(url, { timeout: 25000, headers:{'Accept':'application/json'}, validateStatus: () => true });
-        let d = r.data; if (typeof d === 'string') { try { d = JSON.parse(d); } catch(_){} }
-        if (r.status < 500 && d) { data = d; break; }
-        lastErr = new Error('Status '+r.status);
-      } catch (e) { lastErr = e; }
+    const prot = isProtected(paramValue);
+    if (prot && !whitelist.keys.includes(key)) return errRes(res, 403, customMessages.protectedData);
+
+    incrementKeyUsage(key, 'custom:' + ep, req);
+
+    const finalUrl = apiConf.realAPI.replace('{param}', encodeURIComponent(paramValue));
+
+    let upstream;
+    try {
+      upstream = await axios.get(finalUrl, {
+        timeout: 25000,
+        headers: { 'User-Agent': 'BRONX-V600/1.0', 'Accept': 'application/json' },
+        validateStatus: () => true
+      });
+    } catch (e) {
+      return errRes(res, 502, 'Upstream custom API unreachable', { detail: e.message });
     }
-    if (!data) return res.status(503).json({ error: 'All upstreams failed', detail: lastErr?.message });
 
-    incrementKeyUsage(key, 'custom/'+epName, req);
-    return res.status(200).json({ success: true, endpoint: epName, param: def.param, value: pval, data: applyBranding(data, kv.keyData) });
-  } catch (e) { return res.status(500).json({ error: 'Internal error', detail: e.message }); }
+    requestLogs.push({ key: key.substring(0, 8) + '***', endpoint: 'custom:' + ep, param: apiConf.param, status: upstream.status, timestamp: getIndiaDateTime(), ip: getRealIP(req) });
+    if (requestLogs.length > 2000) requestLogs = requestLogs.slice(-2000);
+
+    const branded = applyBranding(upstream.data, kv.keyData);
+    res.setHeader('X-RateLimit-Mode', ddosConfig.mode);
+    res.setHeader('X-Bronx-Endpoint', 'custom:' + ep);
+    return res.status(upstream.status).json(branded);
+  } catch (e) {
+    console.log('Custom endpoint err:', e.message);
+    return errRes(res, 500, 'Internal server error', { detail: e.message });
+  }
 });
 
-app.use('/api', (req, res) => res.status(404).json({ error: 'Not found', path: req.originalUrl, hint: 'Use /api/key-bronx/<ep> or /api/custom/<ep>' }));
+// ============================================================
+// 🔧 FIX — ENDPOINT RESPONSE ROUTES
+// ============================================================
+app.get('/api/admin/get-endpoint-response', (req, res) => {
+  if (!isAdminAuth(req.headers['x-admin-token'])) {
+    return res.status(401).json({ success: false, e: 'Unauthorized' });
+  }
+  const ep = req.query.endpoint;
+  if (!ep) return res.status(400).json({ success: false, e: 'endpoint required' });
+  const data = endpointResponses[ep] || null;
+  res.json({ success: true, data });
+});
+
+app.post('/api/admin/update-endpoint-response', (req, res) => {
+  if (!isAdminAuth(req.headers['x-admin-token'])) {
+    return res.status(401).json({ success: false, e: 'Unauthorized' });
+  }
+  const { endpoint, responseData } = req.body || {};
+  if (!endpoint) return res.status(400).json({ success: false, e: 'endpoint required' });
+
+  if (typeof responseData === 'string') {
+    try {
+      endpointResponses[endpoint] = JSON.parse(responseData);
+    } catch (e) {
+      return res.status(400).json({ success: false, e: 'Invalid JSON: ' + e.message });
+    }
+  } else {
+    endpointResponses[endpoint] = responseData;
+  }
+
+  saveToDisk();
+  logAudit(ADMIN_USERNAME, 'UPDATE_RESPONSE', { endpoint });
+  res.json({ success: true, message: 'Response saved' });
+});
+
+// ---------- RESPONSE SAMPLE (docs ke liye) ----------
+app.get('/api/response/:endpoint', (req, res) => {
+  const ep = req.params.endpoint;
+  if (endpointResponses[ep]) return res.type('text/plain').send(endpointResponses[ep]);
+  res.type('text/plain').send('{\n  "success": true,\n  "message": "Sample not configured"\n}');
+});
+
+// ---------- HEALTH ----------
+app.get('/health', (req, res) => {
+  // ... (agar pehle se hai toh skip karo)
+});
+
+// ---------- HEALTH ----------
+app.get('/health', (req, res) => {
+  res.json({
+    status: 'ok', version: '6.0.0', uptime: process.uptime(),
+    keys: Object.keys(keyStorage).length, apis: customAPIs.length,
+    ddos: ddosConfig.mode, time: getIndiaDateTime()
+  });
+});
 
 // ============================================================
 // 🔐 ADMIN AUTH
@@ -2570,9 +2656,15 @@ const PORT = process.env.PORT || 3000;
 (async () => {
   initHardcoded();
   if(!loadFromDisk()){ if(!customAPIs.length) initCustomAPIs(); }
-  if(!keyStorage[MASTER_API_KEY]) keyStorage[MASTER_API_KEY] = { name:'👑 OWNER', scopes:['*'], type:'owner', limit:999999, used:0, cooldown:0, dailyLimit:0, perSecondLimit:0, expiry:null, expiryStr:'LIFETIME', created:getIndiaDateTime(), unlimited:true, hidden:true, _hardcoded:false };
+  if(!keyStorage[MASTER_API_KEY]) keyStorage[MASTER_API_KEY] = {
+    name:'👑 OWNER', scopes:['*'], type:'owner', limit:999999, used:0,
+    cooldown:0, dailyLimit:0, perSecondLimit:0, expiry:null,
+    expiryStr:'LIFETIME', created:getIndiaDateTime(), unlimited:true, hidden:true, _hardcoded:false
+  };
   saveToDisk();
-  setInterval(saveToDisk, 3*60*1000);
+  // ⚠️ Yeh line hatao — upar already setInterval(saveToDisk, 2*60*1000) hai
+  // setInterval(saveToDisk, 3*60*1000);
+
   app.listen(PORT, () => {
     console.log('🛡️ BRONX V600 ULTRA ONLINE');
     console.log('🔐 Admin:', ADMIN_PATH);

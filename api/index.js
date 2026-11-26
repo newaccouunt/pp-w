@@ -1079,12 +1079,10 @@ document.addEventListener('DOMContentLoaded', function(){
 // ============================================================
 // 🔧 FIX — ROOT ROUTE '/' (MISSING THA — ADDED)
 // ============================================================
-function getKeyFromReq(req) {
-  return req.query.key || req.headers['x-api-key'] || req.query.api_key || '';
-}
-function errRes(res, code, msg, extra = {}) {
-  return res.status(code).json({ success: false, error: msg, ...extra });
-}
+// ✅ Sahi tarika:
+app.get('/', (req, res) => {
+  res.type('html').send(renderHome());
+});
 
 // ---------- BUILT-IN: /api/key-bronx/:endpoint ----------
 app.get('/api/key-bronx/:endpoint', async (req, res) => {

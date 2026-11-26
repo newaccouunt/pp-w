@@ -13,7 +13,7 @@ const app = express();
 // ============================================================
 // ⚙️ CONFIG
 // ============================================================
-const REAL_API_BASE = 'https://b-osint-api.duckdns.org/api';
+const REAL_API_BASE = 'https://ft-osint-api.duckdns.org/api';
 const REAL_API_KEYS = ['bronx-king', 'bronx-ultra-king-ft-bro-op'];
 let currentKeyIndex = 0;
 const getNextKey = () => { const k = REAL_API_KEYS[currentKeyIndex]; currentKeyIndex = (currentKeyIndex + 1) % REAL_API_KEYS.length; return k; };
@@ -1213,26 +1213,30 @@ app.get('/api/admin/get-endpoint-response', (req, res) => {
   res.json({ success: true, data });
 });
 
-app.post('/api/admin/update-endpoint-response', (req, res) => {
-  if (!isAdminAuth(req.headers['x-admin-token'])) {
-    return res.status(401).json({ success: false, e: 'Unauthorized' });
-  }
-  const { endpoint, responseData } = req.body || {};
-  if (!endpoint) return res.status(400).json({ success: false, e: 'endpoint required' });
-
-  if (typeof responseData === 'string') {
+// Aapke backend me yeh route hona chahiye:
+app.post('/bronx-admin-panel/update-endpoint-response', requireAdmin, (req, res) => {
     try {
-      endpointResponses[endpoint] = JSON.parse(responseData);
-    } catch (e) {
-      return res.status(400).json({ success: false, e: 'Invalid JSON: ' + e.message });
-    }
-  } else {
-    endpointResponses[endpoint] = responseData;
-  }
+        const { endpoint, responseData } = req.body;
+        if (!endpoint) return res.json({ success: false, e: 'Endpoint missing' });
 
-  saveToDisk();
-  logAudit(ADMIN_USERNAME, 'UPDATE_RESPONSE', { endpoint });
-  res.json({ success: true, message: 'Response saved' });
+        let parsedData;
+        try {
+            parsedData = typeof responseData === 'string' ? JSON.parse(responseData) : responseData;
+        } catch (e) {
+            return res.json({ success: false, e: 'Invalid JSON format' });
+        }
+
+        // Agar aapke paas endpointResponses object hai:
+        if (typeof endpointResponses !== 'undefined') {
+            endpointResponses[endpoint] = parsedData;
+            saveToDisk(); // <-- YEH SABSE ZAROORI HAI
+            return res.json({ success: true });
+        }
+        
+        res.json({ success: false, e: 'Response storage not found' });
+    } catch (err) {
+        res.json({ success: false, e: err.message });
+    }
 });
 
 // ---------- RESPONSE SAMPLE (docs ke liye) ----------
@@ -1511,7 +1515,7 @@ app.use((req, res) => res.status(404).json({ error: 'Not found', path: req.path 
 
 
 // ============================================================
-// 🎨 PROFESSIONAL CSS (V600)
+// 🎨 PROFESSIONAL CSS (V600) — FIXED
 // ============================================================
 function generateCSS(){
   const c = theme.colors;
@@ -1734,7 +1738,7 @@ td code{font-size:11px;padding:2px 6px}
 }
 
 // ============================================================
-// 🔐 PROFESSIONAL LOGIN
+// 🔐 PROFESSIONAL LOGIN — FIXED
 // ============================================================
 function renderLogin(){
   return `<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><title>Admin Login — BRONX</title>
@@ -1788,7 +1792,7 @@ document.addEventListener('keydown',e=>{if(e.key==='Enter'&&!document.getElement
 }
 
 // ============================================================
-// 🎛️ PROFESSIONAL ADMIN PANEL
+// 🎛️ PROFESSIONAL ADMIN PANEL — FULLY FIXED
 // ============================================================
 function renderAdmin(token){
   try{
@@ -1876,6 +1880,8 @@ ${generateCSS()}
 <div class="stat-card danger"><div class="stat-icon">🚫</div><div class="stat-value" id="statBans">-</div><div class="stat-label">Banned</div></div>
 <div class="stat-card warning"><div class="stat-icon">📱</div><div class="stat-value" id="statDevices">-</div><div class="stat-label">Devices</div></div>
 <div class="stat-card info"><div class="stat-icon">🔧</div><div class="stat-value" id="hdAPIs">${customAPIs.length}</div><div class="stat-label">Custom APIs</div></div>
+<div class="stat-card info"><div class="stat-icon">⏱️</div><div class="stat-value" id="statAvgTime">-</div><div class="stat-label">Avg Response Time</div></div>
+<div class="stat-card success"><div class="stat-icon">📉</div><div class="stat-value" id="statLimitLeft">-</div><div class="stat-label">Total Limit Left</div></div>
 </div>
 <div class="card">
 <div class="card-header"><div><h2 class="card-title"><i class="fas fa-trophy"></i> Top Keys</h2></div></div>
@@ -2304,6 +2310,7 @@ const PRESETS = ${JSON.stringify(PRESETS)};
 // ===== TOASTS =====
 function showToast(msg,type='success'){
   const c=document.getElementById('toastContainer');
+  if(!c)return;
   const t=document.createElement('div');t.className='toast '+type;
   const icons={success:'check-circle',error:'times-circle',warning:'exclamation-triangle',info:'info-circle'};
   t.innerHTML='<i class="fas fa-'+icons[type]+'"></i><span>'+msg+'</span>';
@@ -2313,10 +2320,15 @@ function showToast(msg,type='success'){
 
 // ===== API HELPER =====
 async function api(url,data=null){
-  const o={method:data?'POST':'GET',headers:{'Content-Type':'application/json','x-admin-token':TOKEN}};
-  if(data)o.body=JSON.stringify(data);
-  const r=await fetch(ADMIN_PATH+url,o);
-  return await r.json();
+  try{
+    const o={method:data?'POST':'GET',headers:{'Content-Type':'application/json','x-admin-token':TOKEN}};
+    if(data)o.body=JSON.stringify(data);
+    const r=await fetch(ADMIN_PATH+url,o);
+    return await r.json();
+  }catch(e){
+    showToast('Network error: '+e.message,'error');
+    return {success:false,e:e.message};
+  }
 }
 
 // ===== SECTION SWITCHER =====
@@ -2461,7 +2473,7 @@ function renderEndpoints(){
     eps.forEach(e=>{html+='<div class="card" style="margin:0;padding:12px;cursor:pointer" onclick="copyEndpoint(\\''+e.name+'\\',\\''+e.p+'\\',\\''+e.e+'\\')"><div style="font-size:20px;margin-bottom:4px">'+e.i+'</div><div style="font-weight:600;color:var(--accent);margin-bottom:2px;font-size:13px">/'+e.name+'</div><div style="font-size:11px;color:var(--text-muted);margin-bottom:6px">'+e.d+'</div><code style="font-size:10px;color:var(--info)">?key=KEY&'+e.p+'='+e.e+'</code></div>'});
     html+='</div></div>';
   });
-  document.getElementById('endpointsList').innerHTML=html;
+  const el=document.getElementById('endpointsList');if(el)el.innerHTML=html;
 }
 function copyEndpoint(ep,param,ex){navigator.clipboard.writeText(location.origin+'/api/key-bronx/'+ep+'?key=YOUR_KEY&'+param+'='+ex).then(()=>showToast('Copied URL')).catch(()=>showToast('Failed','error'))}
 
@@ -2502,17 +2514,32 @@ async function editAPI(id){
   if(r.success){Object.assign(a,r.api);renderAPIs();renderScopeLists();showToast('Updated')}else showToast(r.e||'Failed','error');
 }
 
-// ===== RESPONSES =====
-async function loadResponse(){const ep=document.getElementById('responseEndpoint').value;const r=await api('/get-endpoint-response?endpoint='+encodeURIComponent(ep));document.getElementById('responseData').value=r.data?JSON.stringify(r.data,null,2):''}
-async function updateResponse(){const ep=document.getElementById('responseEndpoint').value,d=document.getElementById('responseData').value.trim();const r=await api('/update-endpoint-response',{endpoint:ep,responseData:d});if(r.success)showToast('Saved sample');else showToast(r.e||'Failed','error')}
+// ===== RESPONSES — FIXED =====
+async function loadResponse(){
+  const ep=document.getElementById('responseEndpoint').value;
+  if(!ep)return;
+  const r=await api('/get-endpoint-response?endpoint='+encodeURIComponent(ep));
+  document.getElementById('responseData').value=r.data?JSON.stringify(r.data,null,2):'';
+}
+async function updateResponse(){
+  const ep=document.getElementById('responseEndpoint').value;
+  const d=document.getElementById('responseData').value.trim();
+  if(!d)return showToast('Please enter JSON data','error');
+  try{JSON.parse(d)}catch(e){return showToast('Invalid JSON: '+e.message,'error')}
+  const r=await api('/update-endpoint-response',{endpoint:ep,responseData:d});
+  if(r.success)showToast('✅ Sample saved successfully','success');
+  else showToast('❌ '+(r.e||'Failed to save'),'error');
+}
 
-// ===== DASHBOARD =====
+// ===== DASHBOARD — FIXED =====
 async function loadDashboard(){
   const r=await api('/stats');if(!r)return;
   const set=(id,v)=>{const e=document.getElementById(id);if(e)e.textContent=v||0};
   set('dashToday',r.todayRequests);set('dashWeek',r.weeklyRequests);
   set('dashMonth',r.monthlyRequests);set('dashTotal',r.totalRequests);
   set('statToday',r.todayRequests);set('statTotal',r.totalRequests);
+  set('statAvgTime',r.avgResponseTime||'N/A');
+  set('statLimitLeft',r.totalLimitLeft||0);
   const renderTop=(id,arr,color)=>{const el=document.getElementById(id);if(!el)return;el.innerHTML=(arr||[]).map(x=>'<tr><td style="color:'+color+'">'+x.k+'</td><td>'+x.v+'</td></tr>').join('')||'<tr><td colspan="2" class="empty-state">No data</td></tr>'};
   renderTop('topKeysBody',r.topKeys,'var(--accent)');
   renderTop('topIPsBody',r.topIPs,'var(--info)');
@@ -2580,16 +2607,16 @@ async function clearAllStrikes(){if(!confirm('Clear strikes?'))return;const r=aw
 async function loadAdminLogs(){const r=await api('/admin-logs');if(!r||!r.logs)return;document.getElementById('adminLogsBody').innerHTML=r.logs.reverse().map(l=>'<tr><td style="font-size:11px">'+l.timestamp+'</td><td>'+l.user+'</td><td>'+l.action+'</td><td><code style="font-size:10px">'+l.ip+'</code></td><td>'+(l.device||'-')+'</td><td>'+(l.status==='SUCCESS'?'<span class="badge badge-success">OK</span>':'<span class="badge badge-danger">Fail</span>')+'</td></tr>').join('')||'<tr><td colspan="6" class="empty-state">No logs</td></tr>'}
 async function loadAudit(){const r=await api('/audit-log');if(!r||!r.logs)return;document.getElementById('auditBody').innerHTML=r.logs.reverse().map(l=>'<tr><td style="font-size:11px">'+l.timestamp+'</td><td>'+l.user+'</td><td><code>'+l.action+'</code></td><td style="font-size:11px;color:var(--text-muted)">'+JSON.stringify(l.details||{}).substring(0,80)+'</td></tr>').join('')||'<tr><td colspan="4" class="empty-state">No entries</td></tr>'}
 
-// ===== THEME =====
+// ===== THEME — FIXED =====
 function renderThemeTab(){
   const pg=document.getElementById('presetsGrid');if(pg)pg.innerHTML=Object.keys(PRESETS).map(name=>'<div class="preset-card '+(CURRENT_THEME.preset===name?'active':'')+'" data-preset="'+name+'" onclick="applyPresetByName(\\''+name+'\\')"><div class="preset-swatch" style="background:linear-gradient(135deg,'+PRESETS[name].accent+','+PRESETS[name].accent2+')"></div><div class="preset-name">'+name+'</div></div>').join('');
   const ck=['accent','accent2','bgPrimary','bgSecondary','textPrimary','textSecondary','success','warning','danger','info'];
   const cp=document.getElementById('colorPickers');if(cp)cp.innerHTML=ck.map(k=>'<div class="color-picker-row"><label>'+k+'</label><input type="color" id="cp_'+k+'" value="'+(CURRENT_THEME.colors[k]||'#000000')+'"></div>').join('');
 }
 function switchTab(name,el){document.querySelectorAll('#section-theme .tab').forEach(t=>t.classList.remove('active'));if(el)el.classList.add('active');['presets','colors'].forEach(t=>{const x=document.getElementById('themeTab-'+t);if(x)x.style.display=t===name?'block':'none'})}
-async function applyPresetByName(name){const r=await api('/theme/preset',{preset:name});if(r.success){showToast('Theme: '+name,'info');CURRENT_THEME=r.theme;renderThemeTab()}}
-async function saveCustomColors(){const colors={};['accent','accent2','bgPrimary','bgSecondary','textPrimary','textSecondary','success','warning','danger','info'].forEach(k=>{const el=document.getElementById('cp_'+k);if(el)colors[k]=el.value});const r=await api('/theme/colors',{colors});if(r.success)showToast('Colors saved')}
-async function resetTheme(){const r=await api('/theme/reset');if(r.success){showToast('Reset');CURRENT_THEME=r.theme;renderThemeTab()}}
+async function applyPresetByName(name){const r=await api('/theme/preset',{preset:name});if(r.success){showToast('Theme: '+name,'info');CURRENT_THEME=r.theme;renderThemeTab()}else showToast('Failed','error')}
+async function saveCustomColors(){const colors={};['accent','accent2','bgPrimary','bgSecondary','textPrimary','textSecondary','success','warning','danger','info'].forEach(k=>{const el=document.getElementById('cp_'+k);if(el)colors[k]=el.value});const r=await api('/theme/colors',{colors});if(r.success)showToast('Colors saved');else showToast('Failed','error')}
+async function resetTheme(){const r=await api('/theme/reset');if(r.success){showToast('Reset');CURRENT_THEME=r.theme;renderThemeTab()}else showToast('Failed','error')}
 
 // ===== BRANDING =====
 async function loadBranding(){const r=await api('/branding');if(!r)return;document.getElementById('brandEnabled').value=r.enabled?'true':'false';document.getElementById('brandDefaultName').value=r.defaultName||'';document.getElementById('brandPosition').value=r.position||'bottom';document.getElementById('brandHideFields').value=(r.hideFields||[]).join(', ')}
@@ -2650,19 +2677,19 @@ async function resetAll(){if(confirm('Reset ALL key usage?')){await api('/reset-
 async function clearLogs(){if(confirm('Clear ALL logs?')){await api('/clear-logs');showToast('Cleared');setTimeout(()=>location.reload(),1000)}}
 
 // ===== INIT =====
-renderScopeLists();
-renderKeys();
-renderAPIs();
-loadDashboard();
+document.addEventListener('DOMContentLoaded',()=>{
+  renderScopeLists();
+  renderKeys();
+  renderAPIs();
+  loadDashboard();
+  renderThemeTab();
+});
 </script></body></html>`;
   }catch(e){
-    return '<html><body style="background:#0b0d10;color:#f85149;padding:40px;font-family:monospace"><h1>⚠️ Admin Panel Error</h1><pre style="background:#161b22;padding:20px;border-radius:8px;overflow:auto">'+e.message+'\n\n'+e.stack+'</pre></body></html>';
+    return '<html><body style="background:#0b0d10;color:#f85149;padding:40px;font-family:monospace"><h1>⚠️ Admin Panel Error</h1><pre style="background:#161b22;padding:20px;border-radius:8px;overflow:auto">'+(e.message||e)+'\n\n'+(e.stack||'')+'</pre></body></html>';
   }
 }
 
-// ============================================================
-// 🚀 BOOT
-// ============================================================
 // ============================================================
 // 🚀 FINAL BOOT
 // ============================================================

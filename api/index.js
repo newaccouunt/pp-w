@@ -1493,6 +1493,8 @@ app.get('/api/sample/:ep', (req,res) => {
 
 // (remaining bulk/apiv/ban/device/etc routes — same as before, saare intact)
 
+// ✅ SAHI
+app.get('/', ...);
 app.use((req,res) => res.status(404).json({error:'Not found'}));
 
 

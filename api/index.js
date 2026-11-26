@@ -2651,7 +2651,9 @@ loadDashboard();
 // ============================================================
 // 🚀 BOOT
 // ============================================================
+// ============================================================
 // 🚀 FINAL BOOT
+// ============================================================
 const PORT = process.env.PORT || 3000;
 (async () => {
   initHardcoded();
@@ -2662,13 +2664,15 @@ const PORT = process.env.PORT || 3000;
     expiryStr:'LIFETIME', created:getIndiaDateTime(), unlimited:true, hidden:true, _hardcoded:false
   };
   saveToDisk();
-  // ⚠️ Yeh line hatao — upar already setInterval(saveToDisk, 2*60*1000) hai
-  // setInterval(saveToDisk, 3*60*1000);
 
-  app.listen(PORT, () => {
+  const server = app.listen(PORT, '0.0.0.0', () => {
     console.log('🛡️ BRONX V600 ULTRA ONLINE');
     console.log('🔐 Admin:', ADMIN_PATH);
-    console.log('🚀 PORT:', PORT);
+    console.log('🚀 PORT:', PORT, '| Host: 0.0.0.0');
   });
+
+  // Render ke edge ke saath connection timing fix
+  server.keepAliveTimeout = 120000;
+  server.headersTimeout = 120000;
 })();
 module.exports = app;

@@ -1077,16 +1077,16 @@ document.addEventListener('DOMContentLoaded', function(){
 
 
 // ============================================================
-// 🔧 FIX — MAIN API ROUTES (YEH MISSING THAY!)
+// 🔧 FIX — ROOT ROUTE '/' (MISSING THA — ADDED)
 // ============================================================
-
-function getKeyFromReq(req) {
-  return req.query.key || req.headers['x-api-key'] || req.query.api_key || '';
-}
-
-function errRes(res, code, msg, extra = {}) {
-  return res.status(code).json({ success: false, error: msg, ...extra });
-}
+app.get('/', (req, res) => {
+  try {
+    res.type('html').send(renderHome());
+  } catch (e) {
+    console.log('Home render err:', e.message);
+    res.status(500).send('<h1>Home Page Error</h1><pre>' + e.message + '</pre>');
+  }
+});
 
 // ---------- BUILT-IN: /api/key-bronx/:endpoint ----------
 app.get('/api/key-bronx/:endpoint', async (req, res) => {

@@ -527,10 +527,17 @@ app.use('/api', (req,res,next) => {
 
 
 // ============================================================
-// 🏠 PROFESSIONAL HOME PAGE (renderHome)
-// Uses: theme, branding, announcement, maintenance, endpoints, customAPIs
+// 🏠 HOME PAGE
 // ============================================================
 function renderHome(){
+  // ... pichhla poora function yahan paste karo
+}
+
+// ============================================================
+// 🏠 PUBLIC (jo already hai)
+// ============================================================
+app.get('/', (req,res) => { try { res.send(renderHome()); } catch(e){ res.send('err: ' + e.message); } });
+app.get('/test', ...);
   const c = theme.colors;
   const endpCount = Object.keys(endpoints).length;
   const customVisible = customAPIs.filter(a => a.visible);

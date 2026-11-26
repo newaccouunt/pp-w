@@ -1066,14 +1066,11 @@ document.addEventListener('DOMContentLoaded', function(){
 
 
 // ============================================================
-// 🔌 FIX — ALL API ROUTES (BUILT-IN + CUSTOM) — MISSING THA
+// 🔌 API ROUTES — BUILT-IN + CUSTOM
 // ============================================================
-
-// ---------- Helper: Upstream API Caller ----------
 async function callRealAPI(realPath, params = {}, retries = 2) {
   const base = REAL_API_BASE.replace(/\/$/, '');
   const url = `${base}${realPath.startsWith('/') ? '' : '/'}${realPath}`;
-
   let lastErr = null;
   for (let attempt = 0; attempt <= retries; attempt++) {
     try {
@@ -1081,198 +1078,86 @@ async function callRealAPI(realPath, params = {}, retries = 2) {
       const resp = await axios.get(url, {
         params: { ...params, key: apiKey },
         timeout: 25000,
-        headers: {
-          'User-Agent': 'BRONX-OSINT-V600/1.0',
-          'Accept': 'application/json',
-          'x-api-key': apiKey
-        },
-        validateStatus: () => true,
-        maxRedirects: 3
+        headers: { 'Accept': 'application/json' },
+        validateStatus: () => true
       });
-
       let data = resp.data;
-      if (typeof data === 'string') {
-        try { data = JSON.parse(data); } catch (_) {}
-      }
-
-      if (resp.status >= 500) { lastErr = new Error(`Upstream ${resp.status}`); continue; }
+      if (typeof data === 'string') { try { data = JSON.parse(data); } catch(_){} }
+      if (resp.status >= 500) { lastErr = new Error('Upstream '+resp.status); continue; }
       return { ok: resp.status < 400, status: resp.status, data };
-    } catch (e) {
-      lastErr = e;
-      await new Promise(r => setTimeout(r, 400 * (attempt + 1)));
-    }
+    } catch (e) { lastErr = e; await new Promise(r => setTimeout(r, 400)); }
   }
-  return { ok: false, status: 503, data: null, error: lastErr?.message || 'Upstream failed' };
+  return { ok: false, status: 503, error: lastErr?.message };
 }
 
-// ---------- Helper: Resolve endpoint definition ----------
-function resolveEndpoint(epName) {
-  if (endpoints[epName]) {
-    return {
-      kind: 'builtin',
-      param: endpoints[epName].p,
-      example: endpoints[epName].e,
-      desc: endpoints[epName].d,
-      realPath: `/key-bronx/${epName}`
-    };
-  }
-  const c = customAPIs.find(a => a.endpoint === epName && a.visible !== false);
-  if (c) {
-    return {
-      kind: 'custom',
-      param: c.param || 'number',
-      example: c.example || '',
-      desc: c.name,
-      realAPI: c.realAPI,
-      fallbackAPIs: c.fallbackAPIs || []
-    };
-  }
+function resolveEndpoint(ep) {
+  if (endpoints[ep]) return { kind:'builtin', param:endpoints[ep].p, example:endpoints[ep].e, realPath:'/key-bronx/'+ep };
+  const c = customAPIs.find(a => a.endpoint === ep && a.visible !== false);
+  if (c) return { kind:'custom', param:c.param||'number', example:c.example||'', realAPI:c.realAPI, fallbackAPIs:c.fallbackAPIs||[] };
   return null;
 }
 
-// ---------- Helper: Extract all query params except key ----------
-function extractParams(req, ignore = ['key']) {
-  const out = {};
-  for (const k of Object.keys(req.query)) {
-    if (!ignore.includes(k)) out[k] = req.query[k];
-  }
-  return out;
-}
-
-// ---------- MAIN: Built-in endpoints ----------
 app.get('/api/key-bronx/:endpoint', async (req, res) => {
   try {
     const epName = req.params.endpoint;
     const key = req.query.key || req.headers['x-api-key'];
-
-    if (!key) return res.status(401).json({ error: customMessages.invalidKey, hint: 'Pass ?key=YOUR_KEY' });
+    if (!key) return res.status(401).json({ error: customMessages.invalidKey });
     const kv = checkKeyValid(key);
     if (!kv.valid) return res.status(403).json({ error: kv.error });
-
     const sc = checkKeyScope(kv.keyData, epName);
-    if (!sc.valid) return res.status(403).json({ error: sc.error, endpoint: epName });
+    if (!sc.valid) return res.status(403).json({ error: sc.error });
 
     const def = resolveEndpoint(epName);
-    if (!def || def.kind !== 'builtin') {
-      return res.status(404).json({ error: 'Endpoint not found', endpoint: epName });
-    }
+    if (!def || def.kind !== 'builtin') return res.status(404).json({ error: 'Endpoint not found', endpoint: epName });
 
-    const params = extractParams(req);
-    const pval = params[def.param];
-    if (!pval) {
-      return res.status(400).json({
-        error: customMessages.missingParam,
-        required: def.param,
-        example: def.example,
-        received: Object.keys(params)
-      });
-    }
+    const pval = req.query[def.param];
+    if (!pval) return res.status(400).json({ error: customMessages.missingParam, required: def.param, example: def.example });
 
     const up = await callRealAPI(def.realPath, { [def.param]: pval });
-    if (!up.ok) {
-      return res.status(up.status || 503).json({ error: 'Upstream error', detail: up.error, endpoint: epName });
-    }
+    if (!up.ok) return res.status(503).json({ error: 'Upstream error', detail: up.error });
 
     incrementKeyUsage(key, epName, req);
-    const branded = applyBranding(up.data, kv.keyData);
-
-    return res.status(200).json({
-      success: true,
-      endpoint: epName,
-      data: branded
-    });
-  } catch (e) {
-    console.error('Builtin err:', e.message);
-    return res.status(500).json({ error: 'Internal error', detail: e.message });
-  }
+    return res.status(200).json({ success: true, endpoint: epName, data: applyBranding(up.data, kv.keyData) });
+  } catch (e) { return res.status(500).json({ error: 'Internal error', detail: e.message }); }
 });
 
-// ---------- MAIN: Custom endpoints ----------
 app.get('/api/custom/:endpoint', async (req, res) => {
   try {
     const epName = req.params.endpoint;
     const key = req.query.key || req.headers['x-api-key'];
-
     if (!key) return res.status(401).json({ error: customMessages.invalidKey });
     const kv = checkKeyValid(key);
     if (!kv.valid) return res.status(403).json({ error: kv.error });
 
     const scopes = kv.keyData.scopes || [];
-    const hasScope =
-      scopes.includes('*') ||
-      scopes.includes('custom') ||
-      scopes.includes('custom:' + epName);
-    if (!hasScope) return res.status(403).json({ error: customMessages.scopeDenied, endpoint: epName });
+    if (!(scopes.includes('*') || scopes.includes('custom') || scopes.includes('custom:' + epName)))
+      return res.status(403).json({ error: customMessages.scopeDenied });
 
     const def = resolveEndpoint(epName);
-    if (!def || def.kind !== 'custom') {
-      return res.status(404).json({ error: 'Custom endpoint not found', endpoint: epName });
-    }
+    if (!def || def.kind !== 'custom') return res.status(404).json({ error: 'Custom endpoint not found', endpoint: epName });
 
-    const params = extractParams(req);
-    const pval = params[def.param] || params.query || params.q;
-    if (!pval) {
-      return res.status(400).json({
-        error: customMessages.missingParam,
-        required: def.param,
-        example: def.example
-      });
-    }
+    const pval = req.query[def.param] || req.query.query || req.query.q;
+    if (!pval) return res.status(400).json({ error: customMessages.missingParam, required: def.param, example: def.example });
 
     const enc = encodeURIComponent(pval);
-    const urls = [
-      def.realAPI.replace('{param}', enc),
-      ...(def.fallbackAPIs || []).map(u => u.replace('{param}', enc))
-    ];
-
-    let finalData = null, finalStatus = 503, lastErr = null;
+    const urls = [def.realAPI.replace('{param}', enc), ...(def.fallbackAPIs || []).map(u => u.replace('{param}', enc))];
+    let data = null, lastErr = null;
     for (const url of urls) {
       try {
-        const r = await axios.get(url, {
-          timeout: 25000,
-          headers: { 'User-Agent': 'BRONX-OSINT-V600/1.0', 'Accept': 'application/json' },
-          validateStatus: () => true,
-          maxRedirects: 3
-        });
-        let d = r.data;
-        if (typeof d === 'string') { try { d = JSON.parse(d); } catch (_) {} }
-        if (r.status < 500 && d) { finalData = d; finalStatus = r.status; break; }
-        lastErr = new Error(`Status ${r.status}`);
+        const r = await axios.get(url, { timeout: 25000, headers:{'Accept':'application/json'}, validateStatus: () => true });
+        let d = r.data; if (typeof d === 'string') { try { d = JSON.parse(d); } catch(_){} }
+        if (r.status < 500 && d) { data = d; break; }
+        lastErr = new Error('Status '+r.status);
       } catch (e) { lastErr = e; }
     }
+    if (!data) return res.status(503).json({ error: 'All upstreams failed', detail: lastErr?.message });
 
-    if (!finalData) {
-      return res.status(503).json({ error: 'All upstreams failed', detail: lastErr?.message, endpoint: epName });
-    }
-
-    incrementKeyUsage(key, 'custom/' + epName, req);
-    const branded = applyBranding(finalData, kv.keyData);
-
-    return res.status(200).json({
-      success: true,
-      endpoint: epName,
-      param: def.param,
-      value: pval,
-      data: branded
-    });
-  } catch (e) {
-    console.error('Custom err:', e.message);
-    return res.status(500).json({ error: 'Internal error', detail: e.message });
-  }
+    incrementKeyUsage(key, 'custom/'+epName, req);
+    return res.status(200).json({ success: true, endpoint: epName, param: def.param, value: pval, data: applyBranding(data, kv.keyData) });
+  } catch (e) { return res.status(500).json({ error: 'Internal error', detail: e.message }); }
 });
 
-// ---------- 404 handler for unmatched /api/* ----------
-app.use('/api', (req, res) => {
-  res.status(404).json({
-    error: 'Not found',
-    path: req.originalUrl,
-    hint: 'Use /api/key-bronx/<endpoint> or /api/custom/<endpoint>',
-    available: {
-      builtin: Object.keys(endpoints).length,
-      custom: customAPIs.filter(a => a.visible).length
-    }
-  });
-});
+app.use('/api', (req, res) => res.status(404).json({ error: 'Not found', path: req.originalUrl, hint: 'Use /api/key-bronx/<ep> or /api/custom/<ep>' }));
 
 // ============================================================
 // 🔐 ADMIN AUTH

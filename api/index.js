@@ -527,24 +527,15 @@ app.use('/api', (req,res,next) => {
 
 
 // ============================================================
-// 🏠 HOME PAGE
+// 🏠 PUBLIC HOME PAGE
 // ============================================================
 function renderHome(){
-  // ... pichhla poora function yahan paste karo
-}
-
-// ============================================================
-// 🏠 PUBLIC (jo already hai)
-// ============================================================
-app.get('/', (req,res) => { try { res.send(renderHome()); } catch(e){ res.send('err: ' + e.message); } });
-app.get('/test', ...);
   const c = theme.colors;
   const endpCount = Object.keys(endpoints).length;
   const customVisible = customAPIs.filter(a => a.visible);
   const customCount = customVisible.length;
   const totalKeys = Object.keys(keyStorage).length;
 
-  // Group endpoints by category
   const grouped = {};
   Object.entries(endpoints).forEach(([name, e]) => {
     const cat = e.c || 'other';
@@ -563,90 +554,25 @@ app.get('/test', ...);
     other:    { icon:'🔧', label:'Other',              color: c.textMuted }
   };
 
-  // Announcement banner
   const annBanner = announcement.enabled ? (() => {
     const typeColor = {
       info:    { bg:'rgba(88,166,255,.15)',  border: c.info,    color: c.info },
       warning: { bg:'rgba(210,153,34,.15)',  border: c.warning, color: c.warning },
       success: { bg:'rgba(63,185,80,.15)',   border: c.success, color: c.success }
     }[announcement.type || 'info'];
-    return `<div class="announce-bar" style="background:${typeColor.bg};border-color:${typeColor.border};color:${typeColor.color}">
-      <i class="fas fa-bullhorn"></i><span>${esc(announcement.text)}</span></div>`;
+    return `<div class="announce-bar" style="background:${typeColor.bg};border-color:${typeColor.border};color:${typeColor.color}"><i class="fas fa-bullhorn"></i><span>${esc(announcement.text)}</span></div>`;
   })() : '';
 
-  // Maintenance banner
   const maintBanner = maintenance.enabled ? `
     <div class="announce-bar" style="background:rgba(248,81,73,.15);border-color:${c.danger};color:${c.danger}">
       <i class="fas fa-wrench"></i><span>🔧 ${esc(maintenance.message)}</span>
     </div>` : '';
 
-  // Endpoint category cards
-  const catCards = Object.entries(grouped).map(([cat, list]) => {
-    const meta = catMeta[cat] || catMeta.other;
-    return `
-    <div class="cat-block">
-      <div class="cat-head" style="border-left-color:${meta.color}">
-        <span class="cat-icon" style="background:${hexToRgbStr(meta.color, .15)};color:${meta.color}">${meta.icon}</span>
-        <div>
-          <div class="cat-title">${meta.label}</div>
-          <div class="cat-sub">${list.length} endpoint${list.length > 1 ? 's' : ''}</div>
-        </div>
-      </div>
-      <div class="ep-list">
-        ${list.map(e => `
-          <div class="ep-item" onclick="copyEp('${e.name}','${e.p}','${e.e}')">
-            <div class="ep-left">
-              <span class="ep-emoji">${e.i}</span>
-              <div>
-                <div class="ep-name">${e.d}</div>
-                <div class="ep-meta"><code>/${e.name}</code> · param: <code>${e.p}</code></div>
-              </div>
-            </div>
-            <i class="fas fa-copy ep-copy" title="Copy URL format"></i>
-          </div>
-        `).join('')}
-      </div>
-    </div>`;
-  }).join('');
-
-  // Custom APIs cards
-  const customCards = customVisible.length ? `
-    <div class="section-block">
-      <div class="section-head">
-        <h2><i class="fas fa-plug"></i> Custom APIs</h2>
-        <span class="badge-count">${customCount} available</span>
-      </div>
-      <div class="custom-grid">
-        ${customVisible.map(a => `
-          <div class="custom-card">
-            <div class="custom-top">
-              <div class="custom-icon"><i class="fas fa-bolt"></i></div>
-              <div>
-                <div class="custom-name">${esc(a.name)}</div>
-                <div class="custom-ep"><code>/api/custom/${a.endpoint}</code></div>
-              </div>
-            </div>
-            <div class="custom-body">
-              <div class="custom-row"><span>Param:</span><code>${a.param || 'number'}</code></div>
-              <div class="custom-row"><span>Example:</span><code>${esc(a.example || '—')}</code></div>
-            </div>
-            <button class="custom-copy" onclick="copyCustom('${a.endpoint}','${a.param || 'number'}','${esc(a.example || '')}')">
-              <i class="fas fa-copy"></i> Copy URL
-            </button>
-          </div>
-        `).join('')}
-      </div>
-    </div>` : '';
-
-  // Branding
   const brandName = branding.enabled ? (branding.defaultName || '@BRONX_ULTRA') : '';
 
-  // Sidebar nav items (live anchors)
   const navCats = Object.keys(grouped).map(cat => {
     const meta = catMeta[cat] || catMeta.other;
-    return `<a href="#cat-${cat}" onclick="scrollToCat(event,'cat-${cat}')">
-      <span>${meta.icon}</span> ${meta.label}
-    </a>`;
+    return `<a href="#cat-${cat}" onclick="scrollToCat(event,'cat-${cat}')"><span>${meta.icon}</span> ${meta.label}</a>`;
   }).join('');
 
   return `<!DOCTYPE html>
@@ -659,15 +585,9 @@ app.get('/test', ...);
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 ${generateCSS()}
 <style>
-/* ===== HOME-SPECIFIC ===== */
 body{background:var(--bg-primary);min-height:100vh;overflow-x:hidden}
-body::before{content:'';position:fixed;inset:0;background:
-  radial-gradient(ellipse 800px 400px at 20% 0%, ${hexToRgbStr(c.accent, .08)}, transparent),
-  radial-gradient(ellipse 600px 300px at 80% 100%, ${hexToRgbStr(c.success, .06)}, transparent);
-  pointer-events:none;z-index:0}
+body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellipse 800px 400px at 20% 0%, ${hexToRgbStr(c.accent, .08)}, transparent),radial-gradient(ellipse 600px 300px at 80% 100%, ${hexToRgbStr(c.success, .06)}, transparent);pointer-events:none;z-index:0}
 .home-layout{position:relative;z-index:1;display:flex;min-height:100vh}
-
-/* ===== SIDEBAR ===== */
 .home-side{width:250px;background:var(--bg-secondary);border-right:1px solid var(--border-color);padding:20px 14px;position:fixed;height:100vh;overflow-y:auto;display:flex;flex-direction:column;z-index:10}
 .home-brand{padding:0 8px 18px;border-bottom:1px solid var(--border-color);margin-bottom:14px}
 .home-logo{width:44px;height:44px;border-radius:12px;background:linear-gradient(135deg,var(--accent),var(--success));display:flex;align-items:center;justify-content:center;font-size:22px;margin-bottom:10px;box-shadow:0 6px 20px ${hexToRgbStr(c.accent, .35)}}
@@ -680,11 +600,7 @@ body::before{content:'';position:fixed;inset:0;background:
 .home-nav a span{font-size:14px}
 .home-side-foot{padding:12px 8px;border-top:1px solid var(--border-color);margin-top:12px;font-size:10px;color:var(--text-muted);line-height:1.6}
 .home-side-foot .online{color:var(--success);font-weight:600}
-
-/* ===== MAIN ===== */
 .home-main{flex:1;margin-left:250px;padding:28px 36px;max-width:calc(100vw - 250px)}
-
-/* ===== HERO ===== */
 .hero{background:linear-gradient(135deg, ${hexToRgbStr(c.accent, .12)}, ${hexToRgbStr(c.success, .05)});border:1px solid var(--border-color);border-radius:16px;padding:32px;margin-bottom:24px;position:relative;overflow:hidden}
 .hero::before{content:'';position:absolute;top:-50%;right:-10%;width:400px;height:400px;background:radial-gradient(circle, ${hexToRgbStr(c.accent, .15)}, transparent 70%);pointer-events:none}
 .hero-badge{display:inline-flex;align-items:center;gap:6px;padding:5px 12px;background:rgba(63,185,80,.15);border:1px solid var(--success);color:var(--success);border-radius:20px;font-size:11px;font-weight:700;letter-spacing:.4px;margin-bottom:14px;position:relative;z-index:1}
@@ -696,11 +612,7 @@ body::before{content:'';position:fixed;inset:0;background:
 .hero-stat{background:rgba(0,0,0,.25);backdrop-filter:blur(10px);border:1px solid var(--border-color);border-radius:10px;padding:14px}
 .hero-stat .v{font-size:22px;font-weight:800;color:var(--accent);font-family:var(--font-mono);letter-spacing:-.5px}
 .hero-stat .l{font-size:10px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.6px;margin-top:3px;font-weight:600}
-
-/* ===== ANNOUNCE ===== */
 .announce-bar{display:flex;align-items:center;gap:10px;padding:11px 16px;border:1px solid;border-radius:10px;margin-bottom:20px;font-size:13px;font-weight:500}
-
-/* ===== QUICK START ===== */
 .quick-card{background:var(--bg-card);border:1px solid var(--border-color);border-radius:12px;padding:20px;margin-bottom:24px}
 .quick-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px}
 .quick-head h3{font-size:14px;font-weight:700;display:flex;align-items:center;gap:8px;color:var(--text-primary)}
@@ -708,15 +620,11 @@ body::before{content:'';position:fixed;inset:0;background:
 .quick-example{background:var(--bg-primary);border:1px solid var(--border-color);border-radius:8px;padding:14px;font-family:var(--font-mono);font-size:12px;color:var(--info);overflow-x:auto;white-space:nowrap;line-height:1.7}
 .quick-example .get{color:var(--success);font-weight:700;margin-right:8px}
 .quick-example .k{color:var(--warning)}
-
-/* ===== SECTION ===== */
 .section-block{margin-bottom:28px}
 .section-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px}
 .section-head h2{font-size:17px;font-weight:700;display:flex;align-items:center;gap:9px;color:var(--text-primary)}
 .section-head h2 i{color:var(--accent);font-size:15px}
 .badge-count{background:rgba(47,129,247,.15);color:var(--accent);padding:3px 10px;border-radius:12px;font-size:11px;font-weight:700}
-
-/* ===== CATEGORY CARDS ===== */
 .cat-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:14px}
 .cat-block{background:var(--bg-card);border:1px solid var(--border-color);border-radius:12px;padding:0;overflow:hidden}
 .cat-head{display:flex;align-items:center;gap:12px;padding:14px 16px;border-bottom:1px solid var(--border-color);border-left:3px solid;background:rgba(0,0,0,.15)}
@@ -724,17 +632,12 @@ body::before{content:'';position:fixed;inset:0;background:
 .cat-title{font-size:13px;font-weight:700;color:var(--text-primary)}
 .cat-sub{font-size:10px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px;margin-top:2px}
 .ep-list{padding:6px;max-height:340px;overflow-y:auto}
-.ep-item{display:flex;align-items:center;justify-content:space-between;padding:9px 10px;border-radius:7px;cursor:pointer;transition:var(--tr);gap:8px}
-.ep-item:hover{background:rgba(110,118,129,.12)}
+.ep-item{display:flex;align-items:center;justify-content:space-between;padding:9px 10px;border-radius:7px;gap:8px}
 .ep-left{display:flex;align-items:center;gap:10px;min-width:0;flex:1}
 .ep-emoji{font-size:16px;flex-shrink:0}
 .ep-name{font-size:12.5px;font-weight:600;color:var(--text-primary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .ep-meta{font-size:10.5px;color:var(--text-muted);margin-top:2px;font-family:var(--font-mono);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .ep-meta code{background:rgba(110,118,129,.15);padding:1px 5px;border-radius:3px;color:var(--info);font-size:10px}
-.ep-copy{font-size:11px;color:var(--text-muted);opacity:0;transition:var(--tr)}
-.ep-item:hover .ep-copy{opacity:1;color:var(--accent)}
-
-/* ===== CUSTOM API CARDS ===== */
 .custom-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px}
 .custom-card{background:var(--bg-card);border:1px solid var(--border-color);border-radius:12px;padding:16px;transition:var(--tr)}
 .custom-card:hover{border-color:var(--accent);transform:translateY(-2px);box-shadow:var(--shadow-md)}
@@ -742,27 +645,17 @@ body::before{content:'';position:fixed;inset:0;background:
 .custom-icon{width:32px;height:32px;border-radius:8px;background:linear-gradient(135deg,var(--accent),var(--accent2));display:flex;align-items:center;justify-content:center;color:#fff;font-size:14px;flex-shrink:0}
 .custom-name{font-size:13px;font-weight:700;color:var(--text-primary)}
 .custom-ep{font-size:10.5px;color:var(--info);font-family:var(--font-mono);margin-top:2px}
-.custom-body{display:flex;flex-direction:column;gap:6px;margin-bottom:12px;padding:10px;background:var(--bg-primary);border-radius:6px}
+.custom-body{display:flex;flex-direction:column;gap:6px;padding:10px;background:var(--bg-primary);border-radius:6px}
 .custom-row{display:flex;justify-content:space-between;font-size:11px}
 .custom-row span{color:var(--text-muted)}
 .custom-row code{color:var(--info);font-size:10.5px;background:rgba(110,118,129,.15);padding:1px 6px;border-radius:3px}
-.custom-copy{width:100%;padding:7px;background:rgba(47,129,247,.12);border:1px solid rgba(47,129,247,.3);color:var(--accent);border-radius:6px;font-size:11.5px;font-weight:600;cursor:pointer;transition:var(--tr);font-family:var(--font-sans);display:flex;align-items:center;justify-content:center;gap:6px}
-.custom-copy:hover{background:rgba(47,129,247,.25)}
-
-/* ===== FOOTER ===== */
 .home-foot{text-align:center;padding:24px 0 8px;font-size:11px;color:var(--text-muted);line-height:1.8;border-top:1px solid var(--border-color);margin-top:30px}
 .home-foot .brand{color:var(--accent);font-weight:700}
-
-/* ===== TOAST ===== */
-.copy-toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(80px);background:var(--success);color:#000;padding:10px 20px;border-radius:8px;font-size:13px;font-weight:600;box-shadow:var(--shadow-lg);transition:transform .3s;z-index:99999;display:flex;align-items:center;gap:8px}
-.copy-toast.show{transform:translateX(-50%) translateY(0)}
-
-/* ===== RESPONSIVE ===== */
 @media(max-width:900px){
   .home-side{width:56px;padding:10px 4px}
   .home-brand{padding:0 0 10px;text-align:center}
   .home-logo{width:36px;height:36px;font-size:18px;margin:0 auto 6px}
-  .home-brand-title,.home-brand-sub,.home-nav-label,.home-nav a:not(:hover) span + *, .home-side-foot{display:none}
+  .home-brand-title,.home-brand-sub,.home-nav-label,.home-side-foot{display:none}
   .home-nav a{justify-content:center;padding:10px 4px;font-size:0;gap:0}
   .home-nav a span{font-size:18px}
   .home-main{margin-left:56px;padding:18px;max-width:calc(100vw - 56px)}
@@ -777,10 +670,7 @@ body::before{content:'';position:fixed;inset:0;background:
 </style>
 </head>
 <body>
-
 <div class="home-layout">
-
-<!-- SIDEBAR -->
 <aside class="home-side">
   <div class="home-brand">
     <div class="home-logo">🛡️</div>
@@ -799,14 +689,9 @@ body::before{content:'';position:fixed;inset:0;background:
     ${brandName ? `<div style="margin-top:6px;color:var(--accent)">${esc(brandName)}</div>` : ''}
   </div>
 </aside>
-
-<!-- MAIN -->
 <main class="home-main">
-
   ${maintBanner}
   ${annBanner}
-
-  <!-- HERO -->
   <section class="hero">
     <div class="hero-badge"><span class="dot"></span> SYSTEM ONLINE</div>
     <h1 class="hero-title">BRONX OSINT V600 ULTRA</h1>
@@ -818,8 +703,6 @@ body::before{content:'';position:fixed;inset:0;background:
       <div class="hero-stat"><div class="v">${ddosConfig.mode.toUpperCase()}</div><div class="l">DDoS Mode</div></div>
     </div>
   </section>
-
-  <!-- QUICK START -->
   <div class="quick-card">
     <div class="quick-head">
       <h3><i class="fas fa-rocket"></i> Quick Start</h3>
@@ -831,8 +714,6 @@ body::before{content:'';position:fixed;inset:0;background:
       <div><span class="get">GET</span> /test &nbsp;·&nbsp; /theme &nbsp;·&nbsp; /public-theme</div>
     </div>
   </div>
-
-  <!-- ENDPOINTS BY CATEGORY -->
   <div class="section-block">
     <div class="section-head">
       <h2><i class="fas fa-list"></i> Built-in Endpoints</h2>
@@ -853,7 +734,7 @@ body::before{content:'';position:fixed;inset:0;background:
           </div>
           <div class="ep-list">
             ${list.map(e => `
-              <div class="ep-item" onclick="copyEp('${e.name}','${e.p}','${e.e}')">
+              <div class="ep-item">
                 <div class="ep-left">
                   <span class="ep-emoji">${e.i}</span>
                   <div>
@@ -861,7 +742,6 @@ body::before{content:'';position:fixed;inset:0;background:
                     <div class="ep-meta"><code>/${e.name}</code> · <code>${e.p}</code></div>
                   </div>
                 </div>
-                <i class="fas fa-copy ep-copy"></i>
               </div>
             `).join('')}
           </div>
@@ -869,8 +749,6 @@ body::before{content:'';position:fixed;inset:0;background:
       }).join('')}
     </div>
   </div>
-
-  <!-- CUSTOM APIS -->
   ${customCount ? `
   <div class="section-block" id="custom-apis">
     <div class="section-head">
@@ -891,63 +769,17 @@ body::before{content:'';position:fixed;inset:0;background:
             <div class="custom-row"><span>Param</span><code>${a.param || 'number'}</code></div>
             <div class="custom-row"><span>Example</span><code>${esc(a.example || '—')}</code></div>
           </div>
-          <button class="custom-copy" onclick="copyCustom('${a.endpoint}','${a.param || 'number'}','${esc(a.example || '')}')">
-            <i class="fas fa-copy"></i> Copy URL
-          </button>
         </div>
       `).join('')}
     </div>
   </div>` : ''}
-
-  <!-- FOOTER -->
   <div class="home-foot">
     🛡️ <span class="brand">BRONX V600 ULTRA</span> · Professional OSINT Platform<br>
     Server time: ${getIndiaDateTime()} IST · Version 6.0.0${brandName ? ' · ' + esc(brandName) : ''}
   </div>
-
 </main>
 </div>
-
-<!-- COPY TOAST -->
-<div class="copy-toast" id="copyToast"><i class="fas fa-check-circle"></i> Copied!</div>
-
 <script>
-const BASE_URL = window.location.origin;
-
-function showToast(msg){
-  const t = document.getElementById('copyToast');
-  t.innerHTML = '<i class="fas fa-check-circle"></i> ' + msg;
-  t.classList.add('show');
-  clearTimeout(window._toastT);
-  window._toastT = setTimeout(() => t.classList.remove('show'), 2200);
-}
-
-async function copyText(text){
-  try {
-    if (navigator.clipboard && window.isSecureContext) {
-      await navigator.clipboard.writeText(text);
-    } else {
-      const ta = document.createElement('textarea');
-      ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
-      document.body.appendChild(ta); ta.select();
-      document.execCommand('copy'); ta.remove();
-    }
-    return true;
-  } catch(e){ return false; }
-}
-
-async function copyEp(ep, param, example){
-  const url = BASE_URL + '/api/key-bronx/' + ep + '?key=YOUR_KEY&' + param + '=' + encodeURIComponent(example);
-  const ok = await copyText(url);
-  showToast(ok ? 'Endpoint URL copied!' : 'Copy failed');
-}
-
-async function copyCustom(ep, param, example){
-  const url = BASE_URL + '/api/custom/' + ep + '?key=YOUR_KEY&' + param + '=' + encodeURIComponent(example);
-  const ok = await copyText(url);
-  showToast(ok ? 'Custom API URL copied!' : 'Copy failed');
-}
-
 function scrollToCat(e, id){
   e.preventDefault();
   const el = document.getElementById(id);
@@ -962,6 +794,7 @@ function scrollToCat(e, id){
 </body>
 </html>`;
 }
+
 
 // ============================================================
 // 🔐 ADMIN AUTH

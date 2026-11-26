@@ -1,7 +1,8 @@
 // ============================================================
-// 🛡️ BRONX OSINT V600 ULTRA PRO — ALL IN ONE
+// 🛡️ BRONX OSINT V600 ULTRA PRO — ALL IN ONE (FIXED)
 // ✅ Professional UI  ✅ Per-Key Branding  ✅ Custom Messages
 // ✅ Full Backup/Restore  ✅ Strict DDoS  ✅ All Features Intact
+// ✅ FIXED: adminAuth order + duplicate /health route
 // ============================================================
 const express = require('express');
 const axios = require('axios');
@@ -131,6 +132,25 @@ let ddosConfig = {
   longBanMs: 60 * 60 * 1000,
   login: { maxAttempts: 5, banMs: 30 * 60 * 1000 },
   strictConfig: { burst10s: 20, perMinute: 60, perHour: 300 }
+};
+
+// ============================================================
+// 🔧 FIXED: isAdminAuth + adminAuth (TOP OF FILE)
+// ============================================================
+function isAdminAuth(t){
+  if(!t) return false;
+  if(adminSessions[t]){
+    if(adminSessions[t].permanent) return true;
+    if(Date.now() < adminSessions[t].expiresAt) return true;
+    delete adminSessions[t]; delete permanentTokens[t];
+  }
+  return false;
+}
+
+const adminAuth = (req, res, next) => {
+  const t = req.headers['x-admin-token'] || req.query.token;
+  if(!isAdminAuth(t)) return res.status(401).json({ success: false, e: 'Unauthorized' });
+  next();
 };
 
 // ============================================================
@@ -403,15 +423,6 @@ function checkKeyScope(kd, ep){
 
 const genToken = () => crypto.randomBytes(24).toString('base64url');
 const genRandomKey = (p='BRONX') => `${p}_${crypto.randomBytes(10).toString('hex').toUpperCase()}`;
-function isAdminAuth(t){
-  if(!t) return false;
-  if(adminSessions[t]){
-    if(adminSessions[t].permanent) return true;
-    if(Date.now() < adminSessions[t].expiresAt) return true;
-    delete adminSessions[t]; delete permanentTokens[t];
-  }
-  return false;
-}
 
 function applyBranding(data, keyData){
   if(!data) return data;
@@ -519,7 +530,7 @@ app.use('/api', (req,res,next) => {
 });
 
 // ============================================================
-// 🔧 FIX #1 — generateCSS() (MISSING THA — ADDED)
+// 🔧 generateCSS()
 // ============================================================
 function generateCSS(){
   const c = theme.colors;
@@ -567,8 +578,6 @@ ${theme.effects.scanLines ? `body::after{content:'';position:fixed;inset:0;backg
 
 // ============================================================
 // 🏠 PUBLIC HOME PAGE — FTOSINT STYLE (BRONX BRANDED)
-// ✅ Admin-controlled response section
-// ✅ Professional docs layout
 // ============================================================
 function renderHome(){
   const c = theme.colors;
@@ -577,7 +586,6 @@ function renderHome(){
   const customCount = customVisible.length;
   const totalKeys = Object.keys(keyStorage).length;
 
-  // Group built-in endpoints by category
   const grouped = {};
   Object.entries(endpoints).forEach(([name, e]) => {
     const cat = e.c || 'other';
@@ -596,11 +604,9 @@ function renderHome(){
     other:    { icon:'fa-wrench', label:'Other',                      color: c.textMuted }
   };
 
-  // Admin-controlled response sample (per endpoint)
 const getResponse = (ep) => {
   const custom = endpointResponses[ep];
   if (custom) {
-    // 🔧 FIX: object ho ya string ho — dono handle karo
     if (typeof custom === 'string') {
       try {
         const parsed = JSON.parse(custom);
@@ -639,7 +645,6 @@ const getResponse = (ep) => {
     return `<a href="#cat-${cat}" onclick="scrollToCat(event,'cat-${cat}')"><i class="fas ${meta.icon}"></i> ${meta.label}</a>`;
   }).join('');
 
-  // Build all endpoint sections
   const buildEndpoints = () => {
     let html = '';
     Object.keys(grouped).forEach(cat => {
@@ -688,7 +693,6 @@ const getResponse = (ep) => {
     return html;
   };
 
-  // Custom APIs section
   const buildCustom = () => {
     if(!customCount) return '';
     return `
@@ -1076,7 +1080,7 @@ document.addEventListener('DOMContentLoaded', function(){
 }
 
 // ============================================================
-// 🔧 MISSING HELPERS (YEH PEHLE HONA CHAHIYE)
+// 🔧 MISSING HELPERS
 // ============================================================
 function getKeyFromReq(req) {
   return req.query.key || req.headers['x-api-key'] || req.query.api_key || '';
@@ -1102,7 +1106,7 @@ app.get('/', (req, res) => {
 app.get('/api/key-bronx/:endpoint', async (req, res) => {
   try {
     const ep = req.params.endpoint;
-    const key = getKeyFromReq(req);  // ✅ Ab kaam karega
+    const key = getKeyFromReq(req);
     if (!key) return errRes(res, 401, customMessages.invalidKey, { hint: 'Pass ?key=YOUR_KEY' });
 
     const kv = checkKeyValid(key);
@@ -1153,7 +1157,7 @@ app.get('/api/key-bronx/:endpoint', async (req, res) => {
 app.get('/api/custom/:endpoint', async (req, res) => {
   try {
     const ep = req.params.endpoint;
-    const key = getKeyFromReq(req);  // ✅ Ab kaam karega
+    const key = getKeyFromReq(req);
     if (!key) return errRes(res, 401, customMessages.invalidKey, { hint: 'Pass ?key=YOUR_KEY' });
 
     const kv = checkKeyValid(key);
@@ -1201,7 +1205,7 @@ app.get('/api/custom/:endpoint', async (req, res) => {
 
 
 // ============================================================
-// 🔧 FIX — ENDPOINT RESPONSE ROUTES
+// 🔧 ENDPOINT RESPONSE ROUTES
 // ============================================================
 app.get('/api/admin/get-endpoint-response', (req, res) => {
   if (!isAdminAuth(req.headers['x-admin-token'])) {
@@ -1213,7 +1217,6 @@ app.get('/api/admin/get-endpoint-response', (req, res) => {
   res.json({ success: true, data });
 });
 
-// Aapke backend me yeh route hona chahiye:
 // ============================================================
 // 📝 UPDATE ENDPOINT RESPONSE (Sample Results)
 // ============================================================
@@ -1248,12 +1251,7 @@ app.get('/api/response/:endpoint', (req, res) => {
   res.type('text/plain').send('{\n  "success": true,\n  "message": "Sample not configured"\n}');
 });
 
-// ---------- HEALTH ----------
-app.get('/health', (req, res) => {
-  // ... (agar pehle se hai toh skip karo)
-});
-
-// ---------- HEALTH ----------
+// ---------- HEALTH (SINGLE) ----------
 app.get('/health', (req, res) => {
   res.json({
     status: 'ok', version: '6.0.0', uptime: process.uptime(),
@@ -1263,7 +1261,7 @@ app.get('/health', (req, res) => {
 });
 
 // ============================================================
-// 🔐 ADMIN AUTH
+// 🔐 ADMIN AUTH ROUTES
 // ============================================================
 app.get(ADMIN_PATH, (req,res) => {
   try{
@@ -1300,12 +1298,6 @@ app.post(ADMIN_PATH + '/login', (req,res) => {
   }
 });
 
-const adminAuth = (req,res,next) => {
-  const t = req.headers['x-admin-token'] || req.query.token;
-  if(!isAdminAuth(t)) return res.status(401).json({ success: false, e: 'Unauthorized' });
-  next();
-};
-
 // ============================================================
 // 🎛️ ADMIN APIs
 // ============================================================
@@ -1325,8 +1317,8 @@ app.post(ADMIN_PATH + '/generate-key', adminAuth, (req,res) => {
     cooldown:parseInt(cooldown)||0, dailyLimit:parseInt(dailyLimit)||0, perSecondLimit:parseInt(perSecondLimit)||0,
     expiry:exp, expiryStr:es, created:getIndiaDateTime(), unlimited:false, hidden:false, _hardcoded:false,
     stopped:false, disabled:false, notes:notes||'',
-    customDeveloperName: customDeveloperName || '',   // 🆕
-    hideFields: hideFields || []                      // 🆕
+    customDeveloperName: customDeveloperName || '',
+    hideFields: hideFields || []
   };
   logAudit('admin', 'GENERATE_KEY', { key:fk, scopes:ks });
   saveToDisk();
@@ -1351,8 +1343,8 @@ app.post(ADMIN_PATH + '/edit-key', adminAuth, (req,res) => {
   if(newScopes) t.scopes = newScopes;
   if(newNotes !== undefined) t.notes = newNotes;
   if(newExpiry){ const e = parseExpiryDate(newExpiry); if(e){ t.expiry = e; t.expiryStr = newExpiry; } }
-  if(newCustomDeveloperName !== undefined) t.customDeveloperName = newCustomDeveloperName; // 🆕
-  if(newHideFields !== undefined) t.hideFields = newHideFields;                           // 🆕
+  if(newCustomDeveloperName !== undefined) t.customDeveloperName = newCustomDeveloperName;
+  if(newHideFields !== undefined) t.hideFields = newHideFields;
   logAudit('admin', 'EDIT_KEY', { key:keyName });
   saveToDisk(); res.json({ success:true, message:'✅ Updated!' });
 });
@@ -1476,7 +1468,6 @@ app.get(ADMIN_PATH + '/full-backup', adminAuth, (req,res) => {
     announcement, maintenance, bans, deviceFingerprints,
     branding, customMessages
   };
-  // also save to disk file for re-download
   try { ensureDirs(); fs.writeFileSync(path.join(BACKUP_DIR, 'backup_'+Date.now()+'.json'), JSON.stringify(backup,null,2)); } catch(e){}
   res.json(backup);
 });
@@ -1500,7 +1491,7 @@ app.post(ADMIN_PATH + '/full-restore', adminAuth, (req,res) => {
 });
 
 // ============================================================
-// 🆕 V600 — SAMPLE RESULT (for API Dashboard JSON preview)
+// 🆕 V600 — SAMPLE RESULT
 // ============================================================
 app.get('/api/sample/:ep', (req,res) => {
   const ep = req.params.ep;
@@ -1510,11 +1501,8 @@ app.get('/api/sample/:ep', (req,res) => {
   res.json({ note: 'Sample not configured by admin yet', endpoint: ep });
 });
 
-// (remaining bulk/apiv/ban/device/etc routes — same as before, saare intact)
-
-// 404 fallback — must stay after all routes
+// 404 fallback
 app.use((req, res) => res.status(404).json({ error: 'Not found', path: req.path }));
-
 
 // ============================================================
 // 🎨 PROFESSIONAL CSS (V600) — FIXED

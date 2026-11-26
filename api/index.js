@@ -836,14 +836,6 @@ app.get('/api/sample/:ep', (req,res) => {
 
 app.use((req,res) => res.status(404).json({error:'Not found'}));
 
-// ============================================================
-// 🚀 BOOT (Part A — Part B & C mein render functions aayenge)
-// ============================================================
-const PORT = process.env.PORT || 3000;
-
-// Placeholder — Part B aur C mein real functions aayenge
-
-module.exports = { app, PORT, state: { keyStorage, customAPIs, branding, customMessages } };
 
 // ============================================================
 // 🎨 PROFESSIONAL CSS (V600)

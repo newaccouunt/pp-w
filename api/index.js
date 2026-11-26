@@ -526,63 +526,96 @@ app.use('/api', (req,res,next) => {
 });
 
 // ============================================================
-// 🏠 PUBLIC
+// 🏠 RENDER HOME — API DASHBOARD
 // ============================================================
-app.get('/', (req,res) => { try { res.send(renderHome()); } catch(e){ res.send('err: ' + e.message); } });
-app.get('/test', (req,res) => res.json({
-  status:'✅ BRONX V600 ULTRA ONLINE', version:'6.0.0', ddos: ddosConfig.mode,
-  keys: Object.keys(keyStorage).length, endpoints: Object.keys(endpoints).length,
-  custom: customAPIs.length, branding: branding.enabled, theme: theme.preset
-}));
-app.get('/theme', (req,res) => res.json(theme));
-app.get('/public-theme', (req,res) => res.json({ theme, announcement, maintenance }));
+function renderHome(){
+  const eps = Object.entries(endpoints).map(([n,e]) => ({ name:n, param:e.p, example:e.e, desc:e.d, icon:e.i }));
+  const custom = customAPIs.filter(a => a.visible).map(a => ({ name:a.endpoint, param:a.param, example:a.example, desc:a.name, icon:'🔧' }));
+  const allEps = eps.concat(custom);
 
-// Custom API endpoint
-app.get('/api/custom/:ep', async (req,res) => {
-  try{
-    const api = customAPIs.find(a => a.endpoint === req.params.ep && a.visible);
-    if(!api) return res.status(404).json({error:'API not found or disabled'});
-    const key = req.query.key;
-    if(!key) return res.status(401).json({error: customMessages.invalidKey});
-    const kc = checkKeyValid(key);
-    if(!kc.valid) return res.status(403).json({error: kc.error});
-    const sc = checkKeyScope(kc.keyData, req.params.ep);
-    if(!sc.valid) return res.status(403).json({error: sc.error});
-    const pv = req.query[api.param] || req.query.number || req.query.num;
-    if(!pv) return res.status(400).json({error: customMessages.missingParam + ': ' + api.param});
-    if(isProtected(pv)) return res.status(403).json({error: customMessages.protectedData, protected:true});
-    const url = api.realAPI.replace(/\{param\}/gi, encodeURIComponent(pv));
-    const r = await axios.get(url, { timeout: 30000 });
-    incrementKeyUsage(key, 'c/'+req.params.ep, req);
-    requestLogs.push({ timestamp: getIndiaDateTime(), key:key.substring(0,8)+'***', endpoint:'c/'+req.params.ep, param:String(pv).substring(0,20), status:'success', ip:getRealIP(req), clientType:detectBrowser(req) });
-    if(requestLogs.length > 2000) requestLogs = requestLogs.slice(-2000);
-    res.json({ ...applyBranding(r.data, kc.keyData), api_info: { key_owner: kc.keyData.name, remaining: kc.keyData.unlimited ? '∞' : Math.max(0, kc.keyData.limit - kc.keyData.used), expiry: kc.keyData.expiryStr || 'LIFETIME' } });
-  }catch(e){ res.status(500).json({error:'API error: ' + e.message}); }
-});
+  return '<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><title>API Dashboard — BRONX V600</title>' +
+    '<style>*{margin:0;padding:0;box-sizing:border-box}body{background:#0b0d10;color:#e6edf3;font-family:Inter,-apple-system,sans-serif;min-height:100vh;padding:20px;line-height:1.5}' +
+    '.wrap{max-width:900px;margin:0 auto}' +
+    'h1{font-size:28px;font-weight:800;color:#e6edf3;margin-bottom:6px;letter-spacing:-1px}' +
+    '.sub{color:#8b949e;font-size:14px;margin-bottom:24px}' +
+    '.card{background:#161b22;border:1px solid #21262d;border-radius:10px;padding:20px;margin-bottom:16px}' +
+    '.label{display:block;font-size:11px;color:#8b949e;text-transform:uppercase;letter-spacing:.5px;font-weight:600;margin-bottom:6px}' +
+    'input,select{width:100%;padding:10px 12px;background:#0b0d10;border:1px solid #21262d;border-radius:6px;color:#e6edf3;font-size:13px;font-family:JetBrains Mono,monospace;outline:none;transition:all .15s}' +
+    'input:focus,select:focus{border-color:#2f81f7;box-shadow:0 0 0 3px rgba(47,129,247,.15)}' +
+    'select{cursor:pointer}' +
+    '.row{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px}' +
+    '.btn{padding:10px 20px;background:#2f81f7;color:#fff;border:none;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer;transition:all .15s;font-family:Inter,sans-serif}' +
+    '.btn:hover{background:#1f6feb;transform:translateY(-1px)}' +
+    '.btn:disabled{opacity:.5;cursor:not-allowed;transform:none}' +
+    '.btn-sec{background:#21262d;color:#e6edf3;border:1px solid #30363d}' +
+    '.btn-sec:hover{background:#30363d}' +
+    '.url{background:#0b0d10;border:1px solid #21262d;border-radius:6px;padding:10px 14px;font-family:JetBrains Mono,monospace;font-size:12px;color:#8b949e;overflow-x:auto;white-space:nowrap;margin-bottom:14px}' +
+    '.url .m{color:#3fb950;font-weight:700}.url .e{color:#2f81f7}.url .k{color:#d29922}.url .v{color:#58a6ff}' +
+    '.actions{display:flex;gap:10px;flex-wrap:wrap}' +
+    '.resp{background:#0b0d10;border:1px solid #21262d;border-radius:8px;overflow:hidden;margin-top:16px}' +
+    '.resp-h{padding:10px 16px;background:#161b22;border-bottom:1px solid #21262d;font-size:12px;color:#8b949e;text-transform:uppercase;letter-spacing:.5px;font-weight:600;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px}' +
+    '.resp-b{padding:0;min-height:180px;max-height:500px;overflow:auto;position:relative}' +
+    '.resp-b pre{margin:0;padding:16px;font-family:JetBrains Mono,monospace;font-size:12.5px;line-height:1.6;color:#e6edf3;overflow-x:auto}' +
+    '.resp-b pre .jk{color:#79c0ff}.resp-b pre .js{color:#a5d6ff}.resp-b pre .jn{color:#79c0ff}.resp-b pre .jb{color:#ff7b72}' +
+    '.empty{padding:40px;text-align:center;color:#6e7681;font-size:13px}' +
+    '.status-ok{color:#3fb950;font-weight:600}.status-err{color:#f85149;font-weight:600}' +
+    '.badge{display:inline-flex;align-items:center;gap:5px;font-size:11px;padding:3px 10px;border-radius:10px;background:rgba(63,185,80,.15);color:#3fb950;font-weight:600}' +
+    '.badge::before{content:"";width:6px;height:6px;border-radius:50%;background:#3fb950}' +
+    '.copy-btn{position:absolute;top:10px;right:12px;background:rgba(33,38,45,.9);border:1px solid #21262d;color:#8b949e;padding:4px 10px;border-radius:5px;font-size:11px;cursor:pointer;font-family:Inter,sans-serif;backdrop-filter:blur(4px)}' +
+    '.copy-btn:hover{color:#e6edf3;background:#161b22}' +
+    '.toast{position:fixed;top:20px;right:20px;padding:12px 18px;border-radius:8px;color:#fff;font-size:13px;font-weight:500;z-index:9999;box-shadow:0 8px 24px rgba(0,0,0,.4)}' +
+    '.footer{margin-top:40px;padding-top:20px;border-top:1px solid #21262d;text-align:center;font-size:12px;color:#6e7681}' +
+    '.footer a{color:#2f81f7;text-decoration:none}' +
+    '@media(max-width:600px){.row{grid-template-columns:1fr}h1{font-size:22px}}' +
+    '</style></head><body>' +
+    '<div class="wrap">' +
+    '<h1>🛡️ BRONX OSINT V600</h1>' +
+    '<p class="sub">API Playground · Test any endpoint with your key</p>' +
 
-// Main endpoint
-app.get('/api/key-bronx/:ep', async (req,res) => {
-  try{
-    const ep = req.params.ep;
-    if(!endpoints[ep]) return res.status(404).json({error:'Endpoint not found'});
-    const key = req.query.key;
-    if(!key) return res.status(401).json({error: customMessages.invalidKey});
-    const kc = checkKeyValid(key);
-    if(!kc.valid) return res.status(403).json({error: kc.error});
-    const sc = checkKeyScope(kc.keyData, ep);
-    if(!sc.valid) return res.status(403).json({error: sc.error});
-    const pv = req.query[endpoints[ep].p];
-    if(!pv) return res.status(400).json({error: customMessages.missingParam + ': ' + endpoints[ep].p});
-    if(isProtected(pv)) return res.status(403).json({error: customMessages.protectedData, protected:true});
-    if(endpointResponses[ep]) return res.json({ ...applyBranding(endpointResponses[ep], kc.keyData), api_info:{key_owner:kc.keyData.name} });
-    const url = `${REAL_API_BASE}/${ep}?key=${getNextKey()}&${endpoints[ep].p}=${encodeURIComponent(pv)}`;
-    const r = await axios.get(url, { timeout: 30000 });
-    incrementKeyUsage(key, ep, req);
-    requestLogs.push({ timestamp: getIndiaDateTime(), key:key.substring(0,8)+'***', endpoint:ep, param:String(pv).substring(0,20), status:'success', ip:getRealIP(req), clientType:detectBrowser(req) });
-    if(requestLogs.length > 2000) requestLogs = requestLogs.slice(-2000);
-    res.json({ ...applyBranding(r.data, kc.keyData), api_info: { key_owner: kc.keyData.name, remaining: kc.keyData.unlimited ? '∞' : Math.max(0, kc.keyData.limit - kc.keyData.used), expiry: kc.keyData.expiryStr || 'LIFETIME' } });
-  }catch(e){ res.status(500).json({error:'API error'}); }
-});
+    '<div class="card">' +
+    '<label class="label">Your API Key</label>' +
+    '<input type="text" id="apiKey" placeholder="BRONX_XXXXXXXXXXXXXXXX" autocomplete="off" oninput="saveKey()">' +
+    '</div>' +
+
+    '<div class="card">' +
+    '<div class="row">' +
+    '<div><label class="label">Endpoint</label><select id="epSel" onchange="onEpChange()">' +
+    allEps.map(e => '<option value="'+e.name+'" data-param="'+e.param+'" data-example="'+e.example+'" data-custom="'+(e.icon==='🔧'?'1':'0')+'">'+e.icon+' /'+e.name+' — '+e.desc+'</option>').join('') +
+    '</select></div>' +
+    '<div><label class="label">Parameter <small id="paramLabel" style="text-transform:none;color:#6e7681"></small></label><input type="text" id="param" placeholder="value" oninput="updateUrl()"></div>' +
+    '</div>' +
+    '<div class="url" id="urlBar"><span class="m">GET</span> <span class="e">/api/key-bronx/endpoint</span>?key=<span class="k">YOUR_KEY</span>&<span class="v">param=value</span></div>' +
+    '<div class="actions">' +
+    '<button class="btn" id="sendBtn" onclick="send()"><i>📤</i> Send Request</button>' +
+    '<button class="btn btn-sec" onclick="viewSample()"><i>👁️</i> View Sample</button>' +
+    '<button class="btn btn-sec" onclick="clearResp()"><i>🗑️</i> Clear</button>' +
+    '</div>' +
+    '<div class="resp">' +
+    '<div class="resp-h"><span>📥 Response</span><span id="respStatus"></span></div>' +
+    '<div class="resp-b" id="respBody"><div class="empty">No response yet. Send a request or view sample.</div></div>' +
+    '</div>' +
+    '</div>' +
+
+    '<div class="footer">BRONX OSINT V600 ULTRA · <a href="/test">Status</a> · <a href="/bronx-admin-panel">Admin</a></div>' +
+    '</div>' +
+
+    '<script>' +
+    'const ALL_EPS = ' + JSON.stringify(allEps) + ';' +
+    'let curEp=null,curParam=null,curEx=null,curCustom=false;' +
+    'try{const s=localStorage.getItem("bronx_key");if(s)document.getElementById("apiKey").value=s;}catch(e){}' +
+    'function saveKey(){try{localStorage.setItem("bronx_key",document.getElementById("apiKey").value);}catch(e){}}' +
+    'function onEpChange(){const sel=document.getElementById("epSel");const opt=sel.options[sel.selectedIndex];curEp=sel.value;curParam=opt.dataset.param;curEx=opt.dataset.example;curCustom=opt.dataset.custom==="1";document.getElementById("paramLabel").textContent="("+curParam+")";document.getElementById("param").value=curEx||"";updateUrl();clearResp();}' +
+    'function updateUrl(){const ep=document.getElementById("epSel").value;const val=document.getElementById("param").value||"value";const p=curParam||"param";document.getElementById("urlBar").innerHTML=\'<span class="m">GET</span> <span class="e">\'+(curCustom?"/api/custom/":"/api/key-bronx/")+ep+\'</span>?key=<span class="k">YOUR_KEY</span>&<span class="v">\'+p+"="+val+"</span>";}' +
+    'function getUrl(){const key=document.getElementById("apiKey").value.trim();const ep=document.getElementById("epSel").value;const val=document.getElementById("param").value.trim();const base=curCustom?"/api/custom/":"/api/key-bronx/";return base+ep+"?key="+encodeURIComponent(key)+"&"+curParam+"="+encodeURIComponent(val);}' +
+    'async function send(){const key=document.getElementById("apiKey").value.trim();if(!key){toast("Enter API key","error");return;}const val=document.getElementById("param").value.trim();if(!val){toast("Enter parameter value","error");return;}const btn=document.getElementById("sendBtn");const orig=btn.innerHTML;btn.disabled=true;btn.innerHTML="⏳ Sending...";const t0=performance.now();try{const r=await fetch(getUrl());const time=Math.round(performance.now()-t0);const d=await r.json();showResp(d,r.status,time,false);}catch(e){showResp({error:"Network: "+e.message},0,Math.round(performance.now()-t0),false);}finally{btn.disabled=false;btn.innerHTML=orig;}}' +
+    'async function viewSample(){const ep=document.getElementById("epSel").value;try{const path=curCustom?("c/"+ep):ep;const r=await fetch("/api/sample/"+encodeURIComponent(path));const d=await r.json();showResp(d,r.status,0,true);}catch(e){showResp({note:"No sample configured",endpoint:ep},200,0,true);}}' +
+    'function showResp(data,status,time,isSample){const body=document.getElementById("respBody");const st=document.getElementById("respStatus");const ok=status>=200&&status<300;const json=JSON.stringify(data,null,2);const html=json.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/("(\\\\u[a-zA-Z0-9]{4}|\\\\[^u]|[^\\\\"])*"(\\s*:)?|\\b(true|false|null)\\b|-?\\d+(?:\\.\\d*)?(?:[eE][+\\-]?\\d+)?)/g,function(m){let c="jn";if(/^"/.test(m)){c=/:$/.test(m)?"jk":"js";}else if(/true|false/.test(m)){c="jb";}else if(/null/.test(m)){c="jn";}return \'<span class="\'+c+\'">\'+m+"</span>";});body.innerHTML="<pre>"+html+"</pre><button class=\\"copy-btn\\" onclick=\\"copyResp()\\">📋 Copy</button>";body.dataset.json=json;st.innerHTML=(ok?\'<span class="status-ok">✓ \'+status+" OK</span>":\'<span class="status-err">✕ \'+status+"</span>")+(time>0?\' <span style="color:#6e7681;font-size:11px">\'+time+"ms</span>":"")+(isSample?\' <span style="color:#58a6ff;font-size:11px">SAMPLE</span>":"");}' +
+    'function clearResp(){document.getElementById("respBody").innerHTML=\'<div class="empty">No response yet.</div>\';document.getElementById("respStatus").innerHTML="";}' +
+    'function copyResp(){const txt=document.getElementById("respBody").dataset.json||"";if(!txt){toast("Nothing to copy","error");return;}navigator.clipboard.writeText(txt).then(()=>toast("Copied","success")).catch(()=>toast("Copy failed","error"));}' +
+    'function toast(msg,type){const t=document.createElement("div");t.className="toast";t.style.background=type==="error"?"rgba(248,81,73,.95)":"rgba(63,185,80,.95)";t.textContent=msg;document.body.appendChild(t);setTimeout(()=>t.remove(),2500);}' +
+    'window.addEventListener("DOMContentLoaded",()=>{onEpChange();});' +
+    '</script></body></html>';
+}
 
 // ============================================================
 // 🔐 ADMIN AUTH

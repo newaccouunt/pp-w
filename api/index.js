@@ -1214,7 +1214,10 @@ app.get('/api/admin/get-endpoint-response', (req, res) => {
 });
 
 // Aapke backend me yeh route hona chahiye:
-app.post('/bronx-admin-panel/update-endpoint-response', requireAdmin, (req, res) => {
+// ============================================================
+// 📝 UPDATE ENDPOINT RESPONSE (Sample Results)
+// ============================================================
+app.post('/bronx-admin-panel/update-endpoint-response', adminAuth, (req, res) => {
     try {
         const { endpoint, responseData } = req.body;
         if (!endpoint) return res.json({ success: false, e: 'Endpoint missing' });
@@ -1223,18 +1226,17 @@ app.post('/bronx-admin-panel/update-endpoint-response', requireAdmin, (req, res)
         try {
             parsedData = typeof responseData === 'string' ? JSON.parse(responseData) : responseData;
         } catch (e) {
-            return res.json({ success: false, e: 'Invalid JSON format' });
+            return res.json({ success: false, e: 'Invalid JSON format: ' + e.message });
         }
 
-        // Agar aapke paas endpointResponses object hai:
-        if (typeof endpointResponses !== 'undefined') {
-            endpointResponses[endpoint] = parsedData;
-            saveToDisk(); // <-- YEH SABSE ZAROORI HAI
-            return res.json({ success: true });
-        }
+        if (typeof endpointResponses === 'undefined') global.endpointResponses = {};
+        endpointResponses[endpoint] = parsedData;
+        saveToDisk();
         
-        res.json({ success: false, e: 'Response storage not found' });
+        console.log('✅ Response saved for endpoint:', endpoint);
+        return res.json({ success: true });
     } catch (err) {
+        console.log('❌ Save response error:', err.message);
         res.json({ success: false, e: err.message });
     }
 });
@@ -1300,7 +1302,7 @@ app.post(ADMIN_PATH + '/login', (req,res) => {
 
 const adminAuth = (req,res,next) => {
   const t = req.headers['x-admin-token'] || req.query.token;
-  if(!isAdminAuth(t)) return res.json({e:'Unauthorized'});
+  if(!isAdminAuth(t)) return res.status(401).json({ success: false, e: 'Unauthorized' });
   next();
 };
 

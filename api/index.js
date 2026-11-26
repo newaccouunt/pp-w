@@ -842,7 +842,6 @@ app.use((req,res) => res.status(404).json({error:'Not found'}));
 const PORT = process.env.PORT || 3000;
 
 // Placeholder — Part B aur C mein real functions aayenge
-let renderHome, renderLogin, renderAdmin, generateCSS;
 
 module.exports = { app, PORT, state: { keyStorage, customAPIs, branding, customMessages } };
 

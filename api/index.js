@@ -54,10 +54,10 @@ let statsCache = { data: null, expiresAt: 0 };
 // 🆕 V600 — GLOBAL BRANDING & CUSTOM MESSAGES
 // ============================================================
 let branding = {
-  enabled: true,              // show developer name in response
-  defaultName: '@BRONX_ULTRA',// default developer name for keys without custom
-  hideFields: ['api_by','by','channel','credit','developer','owner','source','source_url','api_key','key_note'], // fields to strip from result
-  position: 'bottom'          // bottom | top | off
+  enabled: true,
+  defaultName: '@BRONX_ULTRA',
+  hideFields: ['api_by','by','channel','credit','developer','owner','source','source_url','api_key','key_note'],
+  position: 'bottom'
 };
 
 let customMessages = {
@@ -78,7 +78,7 @@ let customMessages = {
 };
 
 // ============================================================
-// 🎨 THEME (kept for backward-compat, minimal)
+// 🎨 THEME
 // ============================================================
 let theme = {
   preset: 'pro-dark',
@@ -122,7 +122,7 @@ let blocklist = { userAgents: [], paths: [], patterns: [] };
 let whitelist = { ips: [], keys: [] };
 
 let ddosConfig = {
-  enabled: true, mode: 'smart',           // off | smart | strict
+  enabled: true, mode: 'smart',
   ip:     { burst10s: 60, perMinute: 200, perHour: 1500, perDay: 15000 },
   device: { burst10s: 80, perMinute: 250, perHour: 2000 },
   key:    { burst10s: 100, perMinute: 400, perHour: 3000 },
@@ -130,7 +130,7 @@ let ddosConfig = {
   tempBanMs: 5 * 60 * 1000,
   longBanMs: 60 * 60 * 1000,
   login: { maxAttempts: 5, banMs: 30 * 60 * 1000 },
-  strictConfig: { burst10s: 20, perMinute: 60, perHour: 300 } // used when mode = strict
+  strictConfig: { burst10s: 20, perMinute: 60, perHour: 300 }
 };
 
 // ============================================================
@@ -152,7 +152,7 @@ function saveToDisk(){
       endpointResponses, theme, bans, abuseTracker,
       deviceFingerprints, ddosConfig, blocklist, whitelist,
       announcement, maintenance, auditLog: auditLog.slice(-500),
-      branding, customMessages        // 🆕
+      branding, customMessages
     }, null, 2));
     fs.writeFileSync(LOGS_FILE, JSON.stringify(keyMonitorLogs.slice(-1000), null, 2));
     fs.writeFileSync(ADMIN_LOGS_FILE, JSON.stringify(adminLogs.slice(-500), null, 2));
@@ -179,8 +179,8 @@ function loadFromDisk(){
       if(d.announcement) announcement = d.announcement;
       if(d.maintenance) maintenance = d.maintenance;
       if(d.auditLog) auditLog = d.auditLog;
-      if(d.branding) branding = { ...branding, ...d.branding };            // 🆕
-      if(d.customMessages) customMessages = { ...customMessages, ...d.customMessages }; // 🆕
+      if(d.branding) branding = { ...branding, ...d.branding };
+      if(d.customMessages) customMessages = { ...customMessages, ...d.customMessages };
       return true;
     }
   }catch(e){ console.log('Load err:', e.message); }
@@ -255,7 +255,7 @@ function detectBrowser(req){
 function detectCountry(req){ return req.headers['cf-ipcountry'] || req.headers['x-country'] || 'Unknown'; }
 
 // ============================================================
-// 🧠 SMART DDOS (strict properly working)
+// 🧠 SMART DDOS
 // ============================================================
 function isBanned(type, id){
   const b = bans[type]?.[id]; if(!b) return false;
@@ -293,7 +293,6 @@ function smartDDoS(req){
   if(isBanned('device', deviceId)) return { allowed:false, code:403, reason: customMessages.bannedDevice, type:'device', id:deviceId, action:'BANNED' };
   if(key && isBanned('key', key)) return { allowed:false, code:403, reason: customMessages.bannedKey, type:'key', id:key, action:'BANNED' };
 
-  // strict mode overrides limits
   const ipLim = ddosConfig.mode === 'strict' ? { ...ddosConfig.ip, ...ddosConfig.strictConfig } : ddosConfig.ip;
   const devLim = ddosConfig.mode === 'strict' ? { ...ddosConfig.device, ...ddosConfig.strictConfig } : ddosConfig.device;
   const keyLim = ddosConfig.mode === 'strict' ? { ...ddosConfig.key, ...ddosConfig.strictConfig } : ddosConfig.key;
@@ -323,7 +322,7 @@ function smartDDoS(req){
 }
 
 // ============================================================
-// 🔑 KEY VALIDATION (custom messages everywhere)
+// 🔑 KEY VALIDATION
 // ============================================================
 function checkCooldown(k){
   const kd = keyStorage[k]; if(!kd?.cooldown) return { allowed: true };
@@ -414,18 +413,14 @@ function isAdminAuth(t){
   return false;
 }
 
-// 🆕 V600 — per-key custom developer name + custom hide fields
 function applyBranding(data, keyData){
   if(!data) return data;
   try{
     const c = JSON.parse(JSON.stringify(data));
-    // Strip hidden fields (global + per-key)
     const hideList = [...(branding.hideFields||[])];
     if(keyData?.hideFields?.length) hideList.push(...keyData.hideFields);
     hideList.forEach(x => { delete c[x]; if(c.meta) delete c.meta[x]; });
     if(c.meta && !Object.keys(c.meta).length) delete c.meta;
-
-    // Developer name — per key override else default
     if(branding.enabled && branding.position !== 'off'){
       const name = keyData?.customDeveloperName || branding.defaultName || '@BRONX_ULTRA';
       if(branding.position === 'top') return { developer: name, ...c };
@@ -434,9 +429,7 @@ function applyBranding(data, keyData){
     return c;
   }catch(e){ return data; }
 }
-function sanitizeResponse(d){ // kept for backward compat
-  return applyBranding(d, null);
-}
+function sanitizeResponse(d){ return applyBranding(d, null); }
 function esc(s){ return s ? String(s).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'})[m]) : ''; }
 
 // ============================================================
@@ -525,6 +518,51 @@ app.use('/api', (req,res,next) => {
   next();
 });
 
+// ============================================================
+// 🔧 FIX #1 — generateCSS() (MISSING THA — ADDED)
+// ============================================================
+function generateCSS(){
+  const c = theme.colors;
+  return `<style>
+:root{
+  --bg-primary:${c.bgPrimary};
+  --bg-secondary:${c.bgSecondary};
+  --bg-card:${c.bgCard};
+  --border-color:${c.borderColor};
+  --text-primary:${c.textPrimary};
+  --text-secondary:${c.textSecondary};
+  --text-muted:${c.textMuted};
+  --accent:${c.accent};
+  --accent2:${c.accent2};
+  --success:${c.success};
+  --warning:${c.warning};
+  --danger:${c.danger};
+  --info:${c.info};
+  --pink:${c.pink};
+  --purple:${c.purple};
+  --yellow:${c.yellow};
+  --font-main:'Inter',sans-serif;
+  --font-mono:'JetBrains Mono',monospace;
+  --radius:${theme.radius}px;
+  --tr:all .18s ease;
+  --shadow-md:0 6px 24px rgba(0,0,0,.35);
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{font-family:var(--font-main);color:var(--text-primary);-webkit-font-smoothing:antialiased}
+a{color:var(--accent);text-decoration:none}
+a:hover{text-decoration:underline}
+code,pre{font-family:var(--font-mono)}
+::-webkit-scrollbar{width:8px;height:8px}
+::-webkit-scrollbar-track{background:var(--bg-secondary)}
+::-webkit-scrollbar-thumb{background:${hexToRgbStr(c.accent,.35)};border-radius:4px}
+::-webkit-scrollbar-thumb:hover{background:${hexToRgbStr(c.accent,.55)}}
+button{font-family:inherit;cursor:pointer}
+input,select,textarea{font-family:inherit}
+${theme.effects.glow ? `*{text-shadow:0 0 8px ${hexToRgbStr(c.accent,.4)}}` : ''}
+${theme.effects.gridBg ? `body{background-image:linear-gradient(${hexToRgbStr(c.accent,.06)} 1px,transparent 1px),linear-gradient(90deg,${hexToRgbStr(c.accent,.06)} 1px,transparent 1px);background-size:40px 40px}` : ''}
+${theme.effects.scanLines ? `body::after{content:'';position:fixed;inset:0;background:repeating-linear-gradient(0deg,rgba(0,0,0,.1) 0,rgba(0,0,0,.1) 1px,transparent 1px,transparent 3px);pointer-events:none;z-index:9999}` : ''}
+</style>`;
+}
 
 // ============================================================
 // 🏠 PUBLIC HOME PAGE
@@ -795,6 +833,17 @@ function scrollToCat(e, id){
 </html>`;
 }
 
+// ============================================================
+// 🔧 FIX #2 — ROOT ROUTE '/' (MISSING THA — ADDED)
+// ============================================================
+app.get('/', (req, res) => {
+  try {
+    res.type('html').send(renderHome());
+  } catch (e) {
+    console.log('Home render err:', e.message);
+    res.status(500).send('<h1>Home Page Error</h1><pre>' + e.message + '</pre>');
+  }
+});
 
 // ============================================================
 // 🔐 ADMIN AUTH

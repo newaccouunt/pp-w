@@ -1307,63 +1307,174 @@ app.post(ADMIN_PATH + '/update-scopes', adminAuth, (req,res) => {
 // 👇 YAHAN CURSOR RAKHO (NEEECHE)
 
 // ============================================================
-// 🆕 ADMIN PANEL — ALL MISSING ROUTES (ADDED)
+// 🎛️ ADMIN APIs (FIXED: Proper Error Handling)
 // ============================================================
 
-// ---------- CUSTOM APIs ----------
-app.post(ADMIN_PATH + '/add-api', adminAuth, (req, res) => {
+// ---------- GENERATE KEY ----------
+app.post(ADMIN_PATH + '/generate-key', adminAuth, (req,res) => {
   try {
-    const { name, endpoint, param, example, realAPI, visible } = req.body;
-    if (!name || !endpoint) return res.json({ success: false, e: 'Name & endpoint required' });
-    const newApi = {
-      id: Date.now(),
-      name,
-      endpoint: endpoint.toLowerCase(),
-      param: param || 'number',
-      example: example || '',
-      realAPI: realAPI || '',
-      visible: visible !== false,
-      scopeKey: 'custom:' + endpoint.toLowerCase()
+    const { keyName, keyOwner, scopes, limit, expiryDate, days, cooldown, dailyLimit, perSecondLimit, autoGenerate, notes, customDeveloperName, hideFields } = req.body;
+    let fk = keyName; if(autoGenerate || !keyName) fk = genRandomKey();
+    
+    if(!fk || !keyOwner) return res.json({ success:false, e:'Missing fields: Key Owner required' });
+    if(keyStorage[fk]) return res.json({ success:false, e:'Key already exists' });
+    
+    const ks = scopes || ['number'];
+    let exp = null, es = expiryDate || 'LIFETIME';
+    
+    if(days && !isNaN(days) && parseInt(days) > 0){
+      const d = new Date(Date.now() + parseInt(days)*24*3600*1000);
+      exp = d; es = d.toISOString().split('T')[0].split('-').reverse().join('-');
+    } else if(expiryDate && expiryDate !== 'LIFETIME'){ 
+      exp = parseExpiryDate(expiryDate); es = expiryDate; 
+    }
+    
+    keyStorage[fk] = {
+      name:keyOwner, scopes:ks, type:'generated', limit:parseInt(limit)||100, used:0,
+      cooldown:parseInt(cooldown)||0, dailyLimit:parseInt(dailyLimit)||0, perSecondLimit:parseInt(perSecondLimit)||0,
+      expiry:exp, expiryStr:es, created:getIndiaDateTime(), unlimited:false, hidden:false, _hardcoded:false,
+      stopped:false, disabled:false, notes:notes||'',
+      customDeveloperName: customDeveloperName || '',
+      hideFields: hideFields || []
     };
-    customAPIs.push(newApi);
+    logAudit('admin', 'GENERATE_KEY', { key:fk, scopes:ks });
     saveToDisk();
-    res.json({ success: true, api: newApi });
-  } catch (e) { res.json({ success: false, e: e.message }); }
+    res.json({ success:true, key:fk, message:'🔑 Key Generated!' });
+  } catch(e) {
+    res.json({ success:false, e: 'Server error: ' + e.message });
+  }
 });
 
-app.post(ADMIN_PATH + '/edit-api', adminAuth, (req, res) => {
+// ---------- EDIT KEY ----------
+app.post(ADMIN_PATH + '/edit-key', adminAuth, (req,res) => {
   try {
-    const { id, name, endpoint, param, example, realAPI } = req.body;
-    const api = customAPIs.find(a => a.id === id);
-    if (!api) return res.json({ success: false, e: 'API not found' });
-    if (name) api.name = name;
-    if (endpoint) { api.endpoint = endpoint.toLowerCase(); api.scopeKey = 'custom:' + endpoint.toLowerCase(); }
-    if (param) api.param = param;
-    if (example !== undefined) api.example = example;
-    if (realAPI) api.realAPI = realAPI;
-    saveToDisk();
-    res.json({ success: true, api });
-  } catch (e) { res.json({ success: false, e: e.message }); }
+    const { keyName, newName, newOwner, newLimit, newDailyLimit, newPerSecondLimit, newCooldown, newScopes, newNotes, newExpiry, newCustomDeveloperName, newHideFields } = req.body;
+    if(!keyStorage[keyName]) return res.json({ success:false, e:'Not found' });
+    if(keyStorage[keyName]._hardcoded) return res.json({ success:false, e:'Hardcoded keys cannot be edited' });
+    
+    const kd = keyStorage[keyName];
+    if(newName && newName !== keyName){
+      if(keyStorage[newName]) return res.json({ success:false, e:'New name already exists' });
+      keyStorage[newName] = { ...kd }; delete keyStorage[keyName];
+    }
+    
+    const t = keyStorage[newName || keyName];
+    if(newOwner !== undefined) t.name = newOwner;
+    if(newLimit !== undefined) t.limit = parseInt(newLimit);
+    if(newDailyLimit !== undefined) t.dailyLimit = parseInt(newDailyLimit);
+    if(newPerSecondLimit !== undefined) t.perSecondLimit = parseInt(newPerSecondLimit);
+    if(newCooldown !== undefined) t.cooldown = parseInt(newCooldown);
+    if(newScopes) t.scopes = newScopes;
+    if(newNotes !== undefined) t.notes = newNotes;
+    if(newExpiry){ const e = parseExpiryDate(newExpiry); if(e){ t.expiry = e; t.expiryStr = newExpiry; } }
+    if(newCustomDeveloperName !== undefined) t.customDeveloperName = newCustomDeveloperName;
+    if(newHideFields !== undefined) t.hideFields = newHideFields;
+    
+    logAudit('admin', 'EDIT_KEY', { key:keyName });
+    saveToDisk(); 
+    res.json({ success:true, message:'✅ Updated!' });
+  } catch(e) {
+    res.json({ success:false, e: 'Server error: ' + e.message });
+  }
 });
 
-app.post(ADMIN_PATH + '/delete-api', adminAuth, (req, res) => {
+// ---------- PUSH KEY ----------
+app.post(ADMIN_PATH + '/push-key', adminAuth, (req,res) => {
   try {
-    const { id } = req.body;
-    customAPIs = customAPIs.filter(a => a.id !== id);
-    saveToDisk();
-    res.json({ success: true });
-  } catch (e) { res.json({ success: false, e: e.message }); }
+    const { keyName, days } = req.body;
+    if(!keyStorage[keyName]) return res.json({ success:false, e:'Key not found' });
+    if(keyStorage[keyName]._hardcoded) return res.json({ success:false, e:'Hardcoded keys cannot be pushed' });
+    
+    const d = parseInt(days) || 30;
+    const ne = new Date(Date.now() + d*24*3600*1000);
+    keyStorage[keyName].expiry = ne;
+    keyStorage[keyName].expiryStr = ne.toISOString().split('T')[0].split('-').reverse().join('-');
+    keyStorage[keyName].used = 0;
+    
+    logAudit('admin', 'PUSH_KEY', { key:keyName, days:d });
+    saveToDisk(); 
+    res.json({ success:true, message:`⬆ Pushed ${d} days!` });
+  } catch(e) {
+    res.json({ success:false, e: 'Server error: ' + e.message });
+  }
 });
 
-app.post(ADMIN_PATH + '/toggle-api', adminAuth, (req, res) => {
+// ---------- STOP / SUSPEND KEY ----------
+app.post(ADMIN_PATH + '/stop-key', adminAuth, (req,res) => {
   try {
-    const { id } = req.body;
-    const api = customAPIs.find(a => a.id === id);
-    if (!api) return res.json({ success: false, e: 'API not found' });
-    api.visible = !api.visible;
-    saveToDisk();
-    res.json({ success: true, visible: api.visible });
-  } catch (e) { res.json({ success: false, e: e.message }); }
+    const k = req.body.keyName;
+    if(!keyStorage[k]) return res.json({ success:false, e:'Key not found' });
+    if(keyStorage[k]._hardcoded) return res.json({ success:false, e:'Hardcoded keys cannot be suspended' });
+    
+    keyStorage[k].stopped = !keyStorage[k].stopped;
+    saveToDisk(); 
+    res.json({ success:true, stopped:keyStorage[k].stopped });
+  } catch(e) {
+    res.json({ success:false, e: 'Server error: ' + e.message });
+  }
+});
+
+// ---------- DISABLE KEY ----------
+app.post(ADMIN_PATH + '/disable-key', adminAuth, (req,res) => {
+  try {
+    const k = req.body.keyName;
+    if(!keyStorage[k]) return res.json({ success:false, e:'Key not found' });
+    if(keyStorage[k]._hardcoded) return res.json({ success:false, e:'Hardcoded keys cannot be disabled' });
+    
+    keyStorage[k].disabled = !keyStorage[k].disabled;
+    saveToDisk(); 
+    res.json({ success:true, disabled:keyStorage[k].disabled });
+  } catch(e) {
+    res.json({ success:false, e: 'Server error: ' + e.message });
+  }
+});
+
+// ---------- DELETE KEY ----------
+app.post(ADMIN_PATH + '/delete-key', adminAuth, (req,res) => {
+  try {
+    if(req.body.keyName === MASTER_API_KEY || keyStorage[req.body.keyName]?._hardcoded) 
+      return res.json({ success:false, e:'Protected key cannot be deleted' });
+      
+    logAudit('admin', 'DELETE_KEY', { key:req.body.keyName });
+    delete keyStorage[req.body.keyName]; 
+    saveToDisk(); 
+    res.json({ success:true });
+  } catch(e) {
+    res.json({ success:false, e: 'Server error: ' + e.message });
+  }
+});
+
+// ---------- CLONE KEY ----------
+app.post(ADMIN_PATH + '/clone-key', adminAuth, (req,res) => {
+  try {
+    const { keyName } = req.body;
+    if(!keyStorage[keyName]) return res.json({ success:false, e:'Key not found' });
+    
+    const kd = keyStorage[keyName];
+    const nk = genRandomKey();
+    keyStorage[nk] = { ...kd, used:0, created:getIndiaDateTime(), _hardcoded:false, hidden:false, name:(kd.name||'Clone')+' (Copy)' };
+    
+    logAudit('admin', 'CLONE_KEY', { from:keyName, to:nk });
+    saveToDisk(); 
+    res.json({ success:true, key:nk, message:'✅ Cloned!' });
+  } catch(e) {
+    res.json({ success:false, e: 'Server error: ' + e.message });
+  }
+});
+
+// ---------- RESET USAGE ----------
+app.post(ADMIN_PATH + '/reset-key-usage', adminAuth, (req,res) => {
+  try {
+    if(keyStorage[req.body.keyName]){ 
+      keyStorage[req.body.keyName].used = 0; 
+      saveToDisk(); 
+      res.json({ success:true }); 
+    } else {
+      res.json({ success:false, e:'Key not found' });
+    }
+  } catch(e) {
+    res.json({ success:false, e: 'Server error: ' + e.message });
+  }
 });
 
 // ---------- THEME ----------

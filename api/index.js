@@ -564,8 +564,11 @@ ${theme.effects.scanLines ? `body::after{content:'';position:fixed;inset:0;backg
 </style>`;
 }
 
+
 // ============================================================
-// 🏠 PUBLIC HOME PAGE
+// 🏠 PUBLIC HOME PAGE — FTOSINT STYLE (BRONX BRANDED)
+// ✅ Admin-controlled response section
+// ✅ Professional docs layout
 // ============================================================
 function renderHome(){
   const c = theme.colors;
@@ -574,6 +577,7 @@ function renderHome(){
   const customCount = customVisible.length;
   const totalKeys = Object.keys(keyStorage).length;
 
+  // Group built-in endpoints by category
   const grouped = {};
   Object.entries(endpoints).forEach(([name, e]) => {
     const cat = e.c || 'other';
@@ -582,14 +586,25 @@ function renderHome(){
   });
 
   const catMeta = {
-    phone:    { icon:'📱', label:'Phone / Identity',   color: c.info },
-    finance:  { icon:'💰', label:'Finance / Banking',  color: c.success },
-    location: { icon:'📍', label:'Location / IP',      color: c.warning },
-    vehicle:  { icon:'🚗', label:'Vehicle / RC',       color: c.pink },
-    gaming:   { icon:'🎮', label:'Gaming',             color: c.purple },
-    social:   { icon:'📸', label:'Social Media',       color: c.accent },
-    pakistan: { icon:'🇵🇰', label:'Pakistan Numbers',  color: c.success },
-    other:    { icon:'🔧', label:'Other',              color: c.textMuted }
+    phone:    { icon:'fa-mobile-screen', label:'Phone Intelligence',   color: c.info },
+    finance:  { icon:'fa-building-columns', label:'Financial',         color: c.success },
+    location: { icon:'fa-location-dot', label:'Location',             color: c.warning },
+    vehicle:  { icon:'fa-car', label:'Vehicle',                       color: c.pink },
+    gaming:   { icon:'fa-gamepad', label:'Gaming',                    color: c.purple },
+    social:   { icon:'fa-hashtag', label:'Social',                    color: c.accent },
+    pakistan: { icon:'fa-flag', label:'Pakistan',                     color: c.success },
+    other:    { icon:'fa-wrench', label:'Other',                      color: c.textMuted }
+  };
+
+  // Admin-controlled response sample (per endpoint)
+  const getResponse = (ep) => {
+    const custom = endpointResponses[ep];
+    if(custom) return custom;
+    return `{
+  "success": true,
+  "endpoint": "${ep}",
+  "data": "Add response sample from Admin Panel"
+}`;
   };
 
   const annBanner = announcement.enabled ? (() => {
@@ -606,228 +621,444 @@ function renderHome(){
       <i class="fas fa-wrench"></i><span>🔧 ${esc(maintenance.message)}</span>
     </div>` : '';
 
-  const brandName = branding.enabled ? (branding.defaultName || '@BRONX_ULTRA') : '';
+  const brandName = branding.enabled ? (branding.defaultName || '@BRONX_ULTRA') : 'BRONX';
 
   const navCats = Object.keys(grouped).map(cat => {
     const meta = catMeta[cat] || catMeta.other;
-    return `<a href="#cat-${cat}" onclick="scrollToCat(event,'cat-${cat}')"><span>${meta.icon}</span> ${meta.label}</a>`;
+    return `<a href="#cat-${cat}" onclick="scrollToCat(event,'cat-${cat}')"><i class="fas ${meta.icon}"></i> ${meta.label}</a>`;
   }).join('');
+
+  // Build all endpoint sections
+  const buildEndpoints = () => {
+    let html = '';
+    Object.keys(grouped).forEach(cat => {
+      const meta = catMeta[cat] || catMeta.other;
+      const list = grouped[cat];
+      html += `
+      <section class="cat-section" id="cat-${cat}">
+        <div class="cat-header">
+          <div class="cat-icon" style="background:${hexToRgbStr(meta.color,.12)};border-color:${hexToRgbStr(meta.color,.3)}">
+            <i class="fas ${meta.icon}" style="color:${meta.color}"></i>
+          </div>
+          <div>
+            <div class="cat-name">${meta.label}</div>
+            <div class="cat-count">${list.length} endpoint${list.length>1?'s':''}</div>
+          </div>
+        </div>
+        ${list.map(e => `
+          <div class="ep" id="ep-${e.name}">
+            <div class="ep-h" onclick="toggleEp(this)">
+              <span class="meth get">GET</span>
+              <span class="ep-path">/api/key-bronx/${e.name}</span>
+              <span class="ep-desc">${e.d}</span>
+              <i class="fas fa-chevron-down arrow"></i>
+            </div>
+            <div class="ep-b"><div class="ep-bi">
+              <table class="pt">
+                <thead><tr><th>Param</th><th>Type</th><th>Required</th><th>Description</th></tr></thead>
+                <tbody>
+                  <tr><td><code>key</code></td><td>string</td><td><span class="req">required</span></td><td>Your API key</td></tr>
+                  <tr><td><code>${e.p}</code></td><td>string</td><td><span class="req">required</span></td><td>${e.d} value (e.g. ${e.e})</td></tr>
+                </tbody>
+              </table>
+              <div class="cb-wrap">
+                <div class="cb-label">REQUEST <button class="cp-btn" onclick="copyText('/api/key-bronx/${e.name}?key=YOUR_KEY&${e.p}=${e.e}')"><i class="far fa-copy"></i> COPY</button></div>
+                <div class="req-line">GET /api/key-bronx/${e.name}?key=YOUR_KEY&${e.p}=${e.e}</div>
+              </div>
+              <div class="cb-wrap">
+                <div class="cb-label">RESPONSE</div>
+                <pre>${esc(getResponse(e.name))}</pre>
+              </div>
+            </div></div>
+          </div>
+        `).join('')}
+      </section>`;
+    });
+    return html;
+  };
+
+  // Custom APIs section
+  const buildCustom = () => {
+    if(!customCount) return '';
+    return `
+    <section class="cat-section" id="cat-custom">
+      <div class="cat-header">
+        <div class="cat-icon" style="background:${hexToRgbStr(c.accent,.12)};border-color:${hexToRgbStr(c.accent,.3)}">
+          <i class="fas fa-plug" style="color:${c.accent}"></i>
+        </div>
+        <div>
+          <div class="cat-name">Custom APIs</div>
+          <div class="cat-count">${customCount} available</div>
+        </div>
+      </div>
+      ${customVisible.map(a => `
+        <div class="ep" id="ep-custom-${a.endpoint}">
+          <div class="ep-h" onclick="toggleEp(this)">
+            <span class="meth get">GET</span>
+            <span class="ep-path">/api/custom/${a.endpoint}</span>
+            <span class="ep-desc">${esc(a.name)}</span>
+            <i class="fas fa-chevron-down arrow"></i>
+          </div>
+          <div class="ep-b"><div class="ep-bi">
+            <table class="pt">
+              <thead><tr><th>Param</th><th>Type</th><th>Required</th><th>Description</th></tr></thead>
+              <tbody>
+                <tr><td><code>key</code></td><td>string</td><td><span class="req">required</span></td><td>Your API key</td></tr>
+                <tr><td><code>${a.param || 'number'}</code></td><td>string</td><td><span class="req">required</span></td><td>${esc(a.name)} value (e.g. ${esc(a.example)})</td></tr>
+              </tbody>
+            </table>
+            <div class="cb-wrap">
+              <div class="cb-label">REQUEST <button class="cp-btn" onclick="copyText('/api/custom/${a.endpoint}?key=YOUR_KEY&${a.param||'number'}=${a.example||''}')"><i class="far fa-copy"></i> COPY</button></div>
+              <div class="req-line">GET /api/custom/${a.endpoint}?key=YOUR_KEY&${a.param||'number'}=${esc(a.example||'')}</div>
+            </div>
+            <div class="cb-wrap">
+              <div class="cb-label">RESPONSE</div>
+              <pre>${esc(getResponse(a.endpoint))}</pre>
+            </div>
+          </div></div>
+        </div>
+      `).join('')}
+    </section>`;
+  };
 
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>BRONX OSINT V600 ULTRA — Professional API Platform</title>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<title>BRONX OSINT V600 ULTRA — API Documentation</title>
+<meta name="description" content="BRONX API documentation — authentication, rate limits, error codes & full endpoint reference.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700&family=DM+Sans:wght@400;500;700&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-${generateCSS()}
 <style>
-body{background:var(--bg-primary);min-height:100vh;overflow-x:hidden}
-body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellipse 800px 400px at 20% 0%, ${hexToRgbStr(c.accent, .08)}, transparent),radial-gradient(ellipse 600px 300px at 80% 100%, ${hexToRgbStr(c.success, .06)}, transparent);pointer-events:none;z-index:0}
-.home-layout{position:relative;z-index:1;display:flex;min-height:100vh}
-.home-side{width:250px;background:var(--bg-secondary);border-right:1px solid var(--border-color);padding:20px 14px;position:fixed;height:100vh;overflow-y:auto;display:flex;flex-direction:column;z-index:10}
-.home-brand{padding:0 8px 18px;border-bottom:1px solid var(--border-color);margin-bottom:14px}
-.home-logo{width:44px;height:44px;border-radius:12px;background:linear-gradient(135deg,var(--accent),var(--success));display:flex;align-items:center;justify-content:center;font-size:22px;margin-bottom:10px;box-shadow:0 6px 20px ${hexToRgbStr(c.accent, .35)}}
-.home-brand-title{font-size:16px;font-weight:800;letter-spacing:-.5px;color:var(--text-primary)}
-.home-brand-sub{font-size:10px;color:var(--text-muted);text-transform:uppercase;letter-spacing:1.2px;margin-top:2px;font-weight:600}
-.home-nav-label{font-size:9px;color:var(--text-muted);text-transform:uppercase;letter-spacing:1.2px;font-weight:700;padding:12px 8px 6px}
-.home-nav{list-style:none;flex:1}
-.home-nav a{display:flex;align-items:center;gap:9px;padding:8px 10px;color:var(--text-secondary);border-radius:6px;font-size:12.5px;font-weight:500;cursor:pointer;transition:var(--tr);text-decoration:none;margin-bottom:2px;border-left:2px solid transparent}
-.home-nav a:hover{background:rgba(110,118,129,.1);color:var(--text-primary);text-decoration:none}
-.home-nav a span{font-size:14px}
-.home-side-foot{padding:12px 8px;border-top:1px solid var(--border-color);margin-top:12px;font-size:10px;color:var(--text-muted);line-height:1.6}
-.home-side-foot .online{color:var(--success);font-weight:600}
-.home-main{flex:1;margin-left:250px;padding:28px 36px;max-width:calc(100vw - 250px)}
-.hero{background:linear-gradient(135deg, ${hexToRgbStr(c.accent, .12)}, ${hexToRgbStr(c.success, .05)});border:1px solid var(--border-color);border-radius:16px;padding:32px;margin-bottom:24px;position:relative;overflow:hidden}
-.hero::before{content:'';position:absolute;top:-50%;right:-10%;width:400px;height:400px;background:radial-gradient(circle, ${hexToRgbStr(c.accent, .15)}, transparent 70%);pointer-events:none}
-.hero-badge{display:inline-flex;align-items:center;gap:6px;padding:5px 12px;background:rgba(63,185,80,.15);border:1px solid var(--success);color:var(--success);border-radius:20px;font-size:11px;font-weight:700;letter-spacing:.4px;margin-bottom:14px;position:relative;z-index:1}
-.hero-badge .dot{width:6px;height:6px;background:var(--success);border-radius:50%;animation:pulse 2s infinite}
-@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.5;transform:scale(1.3)}}
-.hero-title{font-size:34px;font-weight:800;letter-spacing:-1px;line-height:1.15;margin-bottom:10px;background:linear-gradient(135deg,var(--text-primary),${c.accent});-webkit-background-clip:text;-webkit-text-fill-color:transparent;position:relative;z-index:1}
-.hero-sub{font-size:14px;color:var(--text-secondary);margin-bottom:22px;line-height:1.6;max-width:600px;position:relative;z-index:1}
-.hero-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;position:relative;z-index:1}
-.hero-stat{background:rgba(0,0,0,.25);backdrop-filter:blur(10px);border:1px solid var(--border-color);border-radius:10px;padding:14px}
-.hero-stat .v{font-size:22px;font-weight:800;color:var(--accent);font-family:var(--font-mono);letter-spacing:-.5px}
-.hero-stat .l{font-size:10px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.6px;margin-top:3px;font-weight:600}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:${c.bgPrimary};--bg1:${c.bgSecondary};--bg2:${c.bgCard};--bg3:${c.borderColor};
+  --bd:${c.borderColor};--bd2:${hexToRgbStr(c.accent,.35)};
+  --tx:${c.textPrimary};--tx2:${c.textSecondary};--tx3:${c.textMuted};
+  --ac:${c.accent};--acv:${c.accent2};--ac2:${hexToRgbStr(c.accent,.12)};--ac3:${hexToRgbStr(c.accent,.06)};
+  --gr:${c.success};--gr2:${hexToRgbStr(c.success,.1)};
+  --rd:${c.danger};--rd2:${hexToRgbStr(c.danger,.15)};--yw:${c.warning};
+  --font:'DM Sans',system-ui,sans-serif;--mono:'JetBrains Mono',monospace;--display:'Space Grotesk',sans-serif;
+}
+html{scroll-behavior:smooth;scrollbar-width:thin;scrollbar-color:var(--bd2) transparent;overflow-x:hidden}
+body{font-family:var(--font);background:var(--bg);background-image:radial-gradient(at top center, ${hexToRgbStr(c.accent,.08)} 0%, transparent 80%);color:var(--tx);font-size:14px;line-height:1.6;-webkit-font-smoothing:antialiased;overflow-x:hidden}
+a{color:var(--ac);text-decoration:none}a:hover{opacity:.8}
+::-webkit-scrollbar{width:6px;height:6px}::-webkit-scrollbar-thumb{background:var(--bd2);border-radius:99px}
+.wrap{display:flex;min-height:100vh}
+.sb-overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:150;pointer-events:none;opacity:0;backdrop-filter:blur(6px);transition:opacity .3s}
+.sb-overlay.show{pointer-events:auto;opacity:1}
+.sb{width:270px;flex-shrink:0;background:rgba(1,2,4,.85);border-right:1px solid var(--bd);backdrop-filter:blur(24px);position:sticky;top:0;height:100vh;overflow-y:auto;display:flex;flex-direction:column;transition:transform .3s}
+.sb-head{padding:24px 20px 18px;border-bottom:1px solid var(--bd);background:linear-gradient(135deg,${hexToRgbStr(c.accent,.10)} 0%,transparent 60%)}
+.sb-title{font-family:var(--display);font-size:26px;letter-spacing:1px;line-height:1;margin-bottom:4px;background:linear-gradient(135deg,var(--ac),${hexToRgbStr(c.accent2,1)});-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.sb-sub{font-size:11px;color:var(--tx3);letter-spacing:3px;text-transform:uppercase;margin-bottom:10px}
+.docs-sb-search{position:relative;padding:12px 10px;border-bottom:1px solid var(--bd)}
+.docs-sb-search i{position:absolute;left:18px;top:50%;transform:translateY(-50%);color:var(--tx3);font-size:12px;pointer-events:none;z-index:1}
+.docs-sb-search input{width:100%;background:var(--bg2);border:1px solid var(--bd);border-radius:8px;padding:7px 10px 7px 28px;color:var(--tx);font-size:12px;font-family:var(--font);outline:none;transition:border-color .2s,box-shadow .2s}
+.docs-sb-search input:focus{border-color:var(--ac);box-shadow:0 0 0 3px var(--ac3)}
+.sb-body{flex:1;padding:12px 10px;overflow-y:auto}
+.sb-sec{font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--tx3);padding:14px 8px 6px;display:flex;align-items:center;gap:7px}
+.sb-sec i{color:var(--ac);opacity:.7}
+.sba{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:8px;font-size:12px;font-weight:500;color:var(--tx2);transition:all .15s;border-left:2px solid transparent;margin-bottom:2px;cursor:pointer}
+.sba:hover{background:var(--bg3);color:var(--tx);border-left-color:var(--bd2)}
+.sba.on{background:var(--ac2);color:var(--ac);border-left-color:var(--ac)}
+.sba i{width:16px;text-align:center;font-size:14px;opacity:.7}
+.mtag{background:var(--gr2);color:var(--gr);border:1px solid ${hexToRgbStr(c.success,.2)};border-radius:4px;font-size:9px;font-weight:700;padding:2px 6px;letter-spacing:1px;flex-shrink:0}
+.sb-foot{padding:12px 10px;border-top:1px solid var(--bd)}
+.sb-link{display:flex;align-items:center;gap:8px;padding:8px 9px;border-radius:8px;font-size:12px;color:var(--ac);font-weight:600;transition:all .15s}
+.sb-link:hover{background:var(--ac2)}
+.main{flex:1;min-width:0}
+.topbar{display:flex;align-items:center;justify-content:space-between;gap:12px;height:60px;padding:0 24px;border-bottom:1px solid ${hexToRgbStr(c.accent,.08)};background:rgba(7,10,19,.72);backdrop-filter:blur(18px);position:sticky;top:0;z-index:90}
+.tb-link{font-size:12.5px;font-weight:600;color:var(--tx2);transition:color .2s}
+.tb-link:hover{color:#fff;opacity:1}
+.tb-cta{background:rgba(15,23,42,.6);color:#e2e8f0;font-weight:700;padding:9px 16px;border-radius:999px;border:1px solid ${hexToRgbStr(c.accent,.25)};font-size:12px;letter-spacing:.5px;display:inline-flex;align-items:center;gap:7px;transition:all .2s;white-space:nowrap}
+.tb-cta:hover{border-color:${hexToRgbStr(c.accent,.45)};background:${hexToRgbStr(c.accent,.08)};transform:translateY(-1px);opacity:1}
+@media(max-width:640px){.tb-link{display:none}}
+.mob-btn{display:none;background:none;border:none;color:var(--tx2);cursor:pointer;font-size:20px;padding:4px}
+.sb-close{display:none}
+.content{padding:48px 52px 80px;max-width:900px;margin:0 auto}
+.hero{margin-bottom:48px}
+.hero-eyebrow{font-size:11px;letter-spacing:4px;text-transform:uppercase;color:var(--ac);margin-bottom:12px;display:flex;align-items:center;gap:8px}
+.hero-eyebrow::before{content:'';width:24px;height:2px;background:var(--ac);border-radius:2px}
+.hero-title{font-family:var(--display);font-size:54px;letter-spacing:1px;line-height:1.1;color:var(--tx);margin-bottom:16px;background:linear-gradient(135deg,#fff 20%,${c.accent});-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.hero-sub{font-size:16px;color:var(--tx2);line-height:1.7;max-width:560px;margin-bottom:24px}
+.hero-sub strong{color:var(--tx);display:block;font-size:15px;font-weight:600;margin-top:6px}
+.hero-tags{display:flex;gap:10px;flex-wrap:wrap}
+.htag{background:var(--bg2);border:1px solid var(--bd);border-radius:20px;padding:6px 14px;font-size:11px;color:var(--tx2);font-weight:600;letter-spacing:1px;display:flex;align-items:center;gap:6px}
+.htag i{color:var(--ac)}
+.burl{background:var(--bg2);border:1px solid var(--bd);border-radius:12px;padding:14px 20px;display:flex;align-items:center;gap:12px;margin-bottom:40px}
+.burl code{font-size:14px;flex:1;color:var(--gr);font-family:var(--mono);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cbtn{background:linear-gradient(135deg,var(--ac),var(--acv));color:#fff;border:none;border-radius:6px;padding:8px 16px;font-size:12px;font-weight:700;cursor:pointer;font-family:var(--font);letter-spacing:1px;flex-shrink:0}
+.cbtn:hover{transform:translateY(-1px)}
+.cbtn.ok{background:var(--gr);color:#000}
+.auth{background:linear-gradient(135deg,${hexToRgbStr(c.accent,.08)},${hexToRgbStr(c.accent,.02)});border:1px solid ${hexToRgbStr(c.accent,.2)};border-radius:12px;padding:20px;margin-bottom:32px}
+.auth-title{font-size:13px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--ac);margin-bottom:8px;display:flex;align-items:center;gap:8px}
+.auth p{color:var(--tx2);font-size:14px;line-height:1.7}
+h2{font-family:var(--display);font-size:18px;letter-spacing:1px;color:var(--tx);margin:50px 0 20px;padding-top:40px;border-top:1px solid var(--bd);text-transform:uppercase;display:flex;align-items:center;gap:12px}
+h2:first-of-type{margin-top:0;padding-top:0;border:none}
+h2 i{color:var(--ac);font-size:16px}
+.rl-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:32px}
+.rl-item{background:var(--bg1);border:1px solid var(--bd);border-radius:12px;padding:20px;text-align:center}
+.rl-val{font-family:var(--display);font-size:32px;letter-spacing:1px;color:var(--tx);margin-bottom:4px}
+.rl-lbl{font-size:11px;font-weight:600;letter-spacing:2px;text-transform:uppercase;color:var(--tx3)}
+.etable{width:100%;border-collapse:collapse;margin-bottom:32px;font-size:14px}
+.etable th{text-align:left;padding:12px;font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--tx3);border-bottom:1px solid var(--bd)}
+.etable td{padding:14px 12px;border-bottom:1px solid var(--bd);color:var(--tx2)}
+.ecode{display:inline-flex;align-items:center;padding:4px 10px;border-radius:6px;font-family:var(--mono);font-size:12px;font-weight:700}
+.e2xx{background:${hexToRgbStr(c.success,.15)};color:var(--gr);border:1px solid ${hexToRgbStr(c.success,.3)}}
+.e4xx{background:${hexToRgbStr(c.warning,.15)};color:var(--yw);border:1px solid ${hexToRgbStr(c.warning,.3)}}
+.e5xx{background:${hexToRgbStr(c.danger,.15)};color:var(--rd);border:1px solid ${hexToRgbStr(c.danger,.3)}}
+.cat-section{margin-bottom:50px}
+.cat-header{display:flex;align-items:center;gap:12px;margin-bottom:20px;flex-wrap:wrap}
+.cat-icon{width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0;border:1px solid}
+.cat-icon i{font-size:16px}
+.cat-name{font-family:var(--display);font-size:20px;letter-spacing:1px;color:var(--tx);text-transform:uppercase}
+.cat-count{font-size:11px;font-weight:700;color:var(--tx3);background:var(--bg3);border:1px solid var(--bd);border-radius:20px;padding:3px 10px;margin-left:8px;white-space:nowrap;font-family:var(--font);display:inline-block}
+.ep{border:1px solid var(--bd);border-radius:12px;margin-bottom:12px;overflow:hidden;background:var(--bg1);transition:all .25s}
+.ep:hover{border-color:var(--ac)}
+.ep.open{border-color:var(--ac);box-shadow:0 0 0 1px ${hexToRgbStr(c.accent,.1)}}
+.ep-h{display:flex;align-items:center;gap:12px;padding:16px 20px;cursor:pointer;user-select:none;transition:background .2s}
+.ep.open .ep-h{background:var(--ac3)}
+.meth{display:inline-flex;align-items:center;padding:4px 10px;border-radius:6px;font-size:11px;font-weight:700;letter-spacing:1px;flex-shrink:0;font-family:var(--mono)}
+.get{background:var(--gr2);color:var(--gr);border:1px solid ${hexToRgbStr(c.success,.3)}}
+.ep-path{font-family:var(--mono);font-size:14px;font-weight:600;color:var(--tx);flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ep-desc{font-size:13px;color:var(--tx3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:300px}
+.arrow{color:var(--tx3);font-size:14px;flex-shrink:0;transition:transform .4s}
+.ep.open .arrow{transform:rotate(180deg);color:var(--ac)}
+.ep-b{display:block;max-height:0;overflow:hidden;background:var(--bg2);opacity:0;transition:max-height .5s ease,opacity .3s;border-top:1px solid transparent}
+.ep.open .ep-b{max-height:3000px;opacity:1;border-top-color:var(--bd)}
+.ep-b>.ep-bi{padding:20px}
+.pt{width:100%;border-collapse:collapse;margin-bottom:20px;font-size:13px}
+.pt th{text-align:left;padding:10px 12px;font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--tx3);border-bottom:1px solid var(--bd);white-space:nowrap}
+.pt td{padding:12px;border-bottom:1px solid var(--bd);color:var(--tx2);vertical-align:top}
+.req{color:var(--rd);font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;background:var(--rd2);padding:2px 6px;border-radius:4px}
+code{background:var(--bg3);padding:3px 8px;border-radius:6px;font-family:var(--mono);font-size:12px;color:var(--tx);border:1px solid var(--bd)}
+.cb-wrap{margin:16px 0}
+.cb-label{font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--tx3);margin-bottom:8px;display:flex;align-items:center;justify-content:space-between}
+.cp-btn{background:var(--bg3);border:1px solid var(--bd);border-radius:6px;padding:4px 12px;color:var(--tx2);font-size:10px;font-weight:600;letter-spacing:1px;cursor:pointer;font-family:var(--font);text-transform:uppercase}
+.cp-btn:hover{background:var(--ac);color:#fff;border-color:var(--ac)}
+pre{background:var(--bg);border:1px solid var(--bd);border-radius:10px;padding:16px 20px;overflow-x:auto;font-family:var(--mono);font-size:12px;line-height:1.8;color:var(--tx2);white-space:pre-wrap;word-wrap:break-word}
+.req-line{background:var(--bg);border:1px solid var(--bd);border-radius:10px;padding:14px 20px;font-family:var(--mono);font-size:13px;color:var(--gr);white-space:nowrap;overflow-x:auto;margin:12px 0}
 .announce-bar{display:flex;align-items:center;gap:10px;padding:11px 16px;border:1px solid;border-radius:10px;margin-bottom:20px;font-size:13px;font-weight:500}
-.quick-card{background:var(--bg-card);border:1px solid var(--border-color);border-radius:12px;padding:20px;margin-bottom:24px}
-.quick-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px}
-.quick-head h3{font-size:14px;font-weight:700;display:flex;align-items:center;gap:8px;color:var(--text-primary)}
-.quick-head h3 i{color:var(--accent)}
-.quick-example{background:var(--bg-primary);border:1px solid var(--border-color);border-radius:8px;padding:14px;font-family:var(--font-mono);font-size:12px;color:var(--info);overflow-x:auto;white-space:nowrap;line-height:1.7}
-.quick-example .get{color:var(--success);font-weight:700;margin-right:8px}
-.quick-example .k{color:var(--warning)}
-.section-block{margin-bottom:28px}
-.section-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px}
-.section-head h2{font-size:17px;font-weight:700;display:flex;align-items:center;gap:9px;color:var(--text-primary)}
-.section-head h2 i{color:var(--accent);font-size:15px}
-.badge-count{background:rgba(47,129,247,.15);color:var(--accent);padding:3px 10px;border-radius:12px;font-size:11px;font-weight:700}
-.cat-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:14px}
-.cat-block{background:var(--bg-card);border:1px solid var(--border-color);border-radius:12px;padding:0;overflow:hidden}
-.cat-head{display:flex;align-items:center;gap:12px;padding:14px 16px;border-bottom:1px solid var(--border-color);border-left:3px solid;background:rgba(0,0,0,.15)}
-.cat-icon{width:36px;height:36px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
-.cat-title{font-size:13px;font-weight:700;color:var(--text-primary)}
-.cat-sub{font-size:10px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px;margin-top:2px}
-.ep-list{padding:6px;max-height:340px;overflow-y:auto}
-.ep-item{display:flex;align-items:center;justify-content:space-between;padding:9px 10px;border-radius:7px;gap:8px}
-.ep-left{display:flex;align-items:center;gap:10px;min-width:0;flex:1}
-.ep-emoji{font-size:16px;flex-shrink:0}
-.ep-name{font-size:12.5px;font-weight:600;color:var(--text-primary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.ep-meta{font-size:10.5px;color:var(--text-muted);margin-top:2px;font-family:var(--font-mono);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.ep-meta code{background:rgba(110,118,129,.15);padding:1px 5px;border-radius:3px;color:var(--info);font-size:10px}
-.custom-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px}
-.custom-card{background:var(--bg-card);border:1px solid var(--border-color);border-radius:12px;padding:16px;transition:var(--tr)}
-.custom-card:hover{border-color:var(--accent);transform:translateY(-2px);box-shadow:var(--shadow-md)}
-.custom-top{display:flex;align-items:center;gap:10px;margin-bottom:12px}
-.custom-icon{width:32px;height:32px;border-radius:8px;background:linear-gradient(135deg,var(--accent),var(--accent2));display:flex;align-items:center;justify-content:center;color:#fff;font-size:14px;flex-shrink:0}
-.custom-name{font-size:13px;font-weight:700;color:var(--text-primary)}
-.custom-ep{font-size:10.5px;color:var(--info);font-family:var(--font-mono);margin-top:2px}
-.custom-body{display:flex;flex-direction:column;gap:6px;padding:10px;background:var(--bg-primary);border-radius:6px}
-.custom-row{display:flex;justify-content:space-between;font-size:11px}
-.custom-row span{color:var(--text-muted)}
-.custom-row code{color:var(--info);font-size:10.5px;background:rgba(110,118,129,.15);padding:1px 6px;border-radius:3px}
-.home-foot{text-align:center;padding:24px 0 8px;font-size:11px;color:var(--text-muted);line-height:1.8;border-top:1px solid var(--border-color);margin-top:30px}
-.home-foot .brand{color:var(--accent);font-weight:700}
-@media(max-width:900px){
-  .home-side{width:56px;padding:10px 4px}
-  .home-brand{padding:0 0 10px;text-align:center}
-  .home-logo{width:36px;height:36px;font-size:18px;margin:0 auto 6px}
-  .home-brand-title,.home-brand-sub,.home-nav-label,.home-side-foot{display:none}
-  .home-nav a{justify-content:center;padding:10px 4px;font-size:0;gap:0}
-  .home-nav a span{font-size:18px}
-  .home-main{margin-left:56px;padding:18px;max-width:calc(100vw - 56px)}
-  .hero{padding:22px}
-  .hero-title{font-size:24px}
-  .cat-grid,.custom-grid{grid-template-columns:1fr}
+.home-foot{text-align:center;padding:24px 0 8px;font-size:11px;color:var(--tx3);line-height:1.8;border-top:1px solid var(--bd);margin-top:30px}
+.home-foot .brand{color:var(--ac);font-weight:700}
+@media(max-width:768px){
+  .sb{position:fixed;z-index:300;height:100%;width:280px;box-shadow:4px 0 32px rgba(0,0,0,.6);transform:translateX(-100%)}
+  .sb.open{transform:translateX(0)}
+  .sb-close{display:block;position:absolute;top:16px;right:16px;background:var(--bg3);border:1px solid var(--bd);border-radius:8px;color:var(--tx2);cursor:pointer;font-size:16px;padding:6px 12px}
+  .mob-btn{display:block}
+  .content{padding:20px 14px 60px;max-width:100%}
+  .topbar{padding:0 14px;height:56px}
+  .hero-title{font-size:32px}
+  .hero-sub{font-size:14px}
+  .rl-grid{grid-template-columns:1fr 1fr;gap:10px}
+  .rl-item{padding:14px 10px}
+  .rl-val{font-size:24px}
+  .ep-desc{display:none}
+  .ep-h{padding:12px 14px;gap:8px}
+  .ep-path{font-size:12px}
+  .ep-b>.ep-bi{padding:14px}
+  pre{padding:12px 14px;font-size:11px}
+  .burl{padding:10px 14px;flex-wrap:wrap;gap:8px}
+  .cat-name{font-size:17px}
+  h2{font-size:16px;margin:32px 0 14px;padding-top:28px}
+  .etable{font-size:13px}
+  .etable td,.etable th{padding:10px}
 }
 @media(max-width:500px){
-  .hero-stats{grid-template-columns:repeat(2,1fr)}
-  .hero-title{font-size:20px}
+  .hero-title{font-size:24px}
+  .rl-grid{grid-template-columns:1fr}
 }
 </style>
 </head>
 <body>
-<div class="home-layout">
-<aside class="home-side">
-  <div class="home-brand">
-    <div class="home-logo">🛡️</div>
-    <div class="home-brand-title">BRONX V600</div>
-    <div class="home-brand-sub">OSINT ULTRA</div>
+<div class="sb-overlay" id="overlay" onclick="closeSidebar()"></div>
+<div class="wrap">
+<aside class="sb" id="sb" aria-label="Endpoint navigation">
+  <button class="sb-close" onclick="closeSidebar()"><i class="fas fa-xmark"></i></button>
+  <div class="sb-head">
+    <h1 class="sb-title" style="margin:0"><a href="/" style="color:inherit;text-decoration:none;display:block">BRONX</a></h1>
+    <div class="sb-sub">${endpCount + customCount} endpoints · REST · JSON</div>
   </div>
-  <div class="home-nav-label">Navigation</div>
-  <ul class="home-nav">
-    <li><a href="#" onclick="window.scrollTo({top:0,behavior:'smooth'});return false"><span>🏠</span> Home</a></li>
-    ${navCats}
-    ${customCount ? `<li><a href="#custom-apis" onclick="scrollToCat(event,'custom-apis')"><span>🔌</span> Custom APIs</a></li>` : ''}
-  </ul>
-  <div class="home-side-foot">
-    <div class="online">● System Online</div>
-    <div style="margin-top:6px">v6.0.0</div>
-    ${brandName ? `<div style="margin-top:6px;color:var(--accent)">${esc(brandName)}</div>` : ''}
+  <div class="docs-sb-search">
+    <i class="fas fa-search"></i>
+    <input type="text" id="epSearch" placeholder="Search endpoints..." oninput="filterEndpoints()">
+  </div>
+  <div class="sb-body">
+    <div class="sb-sec"><i class="fas fa-book-open"></i> Overview</div>
+    <a href="#intro" class="sba" onclick="scrollToId('intro')"><i class="fas fa-house"></i> Introduction</a>
+    <a href="#auth" class="sba" onclick="scrollToId('auth')"><i class="fas fa-shield-halved"></i> Authentication</a>
+    <a href="#limits" class="sba" onclick="scrollToId('limits')"><i class="fas fa-gauge-high"></i> Rate Limits</a>
+    <a href="#errors" class="sba" onclick="scrollToId('errors')"><i class="fas fa-triangle-exclamation"></i> Error Codes</a>
+    ${Object.keys(grouped).map(cat => {
+      const meta = catMeta[cat] || catMeta.other;
+      return `
+      <div class="sb-sec"><i class="fas ${meta.icon}"></i> ${meta.label}</div>
+      ${grouped[cat].map(e => `<a href="#ep-${e.name}" class="sba" onclick="scrollToId('ep-${e.name}')"><span class="mtag">GET</span> ${e.d}</a>`).join('')}
+      `;
+    }).join('')}
+    ${customCount ? `
+    <div class="sb-sec"><i class="fas fa-plug"></i> Custom APIs</div>
+    ${customVisible.map(a => `<a href="#ep-custom-${a.endpoint}" class="sba" onclick="scrollToId('ep-custom-${a.endpoint}')"><span class="mtag">GET</span> ${esc(a.name)}</a>`).join('')}
+    ` : ''}
+  </div>
+  <div class="sb-foot">
+    <a href="${ADMIN_PATH}" class="sb-link"><i class="fas fa-gauge-high"></i> Admin Panel</a>
   </div>
 </aside>
-<main class="home-main">
-  ${maintBanner}
-  ${annBanner}
-  <section class="hero">
-    <div class="hero-badge"><span class="dot"></span> SYSTEM ONLINE</div>
-    <h1 class="hero-title">BRONX OSINT V600 ULTRA</h1>
-    <p class="hero-sub">Professional OSINT API platform with ${endpCount} built-in endpoints and ${customCount} custom integrations. Powered by smart caching, per-key branding, and strict DDoS protection.</p>
-    <div class="hero-stats">
-      <div class="hero-stat"><div class="v">${endpCount}</div><div class="l">Endpoints</div></div>
-      <div class="hero-stat"><div class="v">${customCount}</div><div class="l">Custom APIs</div></div>
-      <div class="hero-stat"><div class="v">${totalKeys}</div><div class="l">Active Keys</div></div>
-      <div class="hero-stat"><div class="v">${ddosConfig.mode.toUpperCase()}</div><div class="l">DDoS Mode</div></div>
+<div class="main">
+  <div class="topbar">
+    <div style="display:flex;align-items:center;gap:10px;min-width:0">
+      <button class="mob-btn" onclick="openSidebar()"><i class="fas fa-bars"></i></button>
+      <a href="/" style="display:flex;align-items:center;gap:10px;text-decoration:none">
+        <div style="width:34px;height:34px;border-radius:9px;background:linear-gradient(135deg,var(--ac),var(--acv));display:flex;align-items:center;justify-content:center;font-size:18px">🛡️</div>
+        <span style="font-family:var(--display);font-weight:700;letter-spacing:.5px;font-size:17px;color:var(--tx)">BRONX<b style="color:var(--acv)">OSINT</b></span>
+      </a>
     </div>
-  </section>
-  <div class="quick-card">
-    <div class="quick-head">
-      <h3><i class="fas fa-rocket"></i> Quick Start</h3>
-      <span class="badge-count">API v6.0.0</span>
-    </div>
-    <div class="quick-example">
-      <div><span class="get">GET</span> /api/key-bronx/<span class="k">number</span>?key=YOUR_KEY&num=9876543210</div>
-      <div><span class="get">GET</span> /api/custom/<span class="k">number-advanced</span>?key=YOUR_KEY&num=9876543210</div>
-      <div><span class="get">GET</span> /test &nbsp;·&nbsp; /theme &nbsp;·&nbsp; /public-theme</div>
+    <div style="display:flex;align-items:center;gap:16px">
+      <a href="${ADMIN_PATH}" class="tb-cta"><i class="fas fa-gauge-high"></i> Admin Panel</a>
     </div>
   </div>
-  <div class="section-block">
-    <div class="section-head">
-      <h2><i class="fas fa-list"></i> Built-in Endpoints</h2>
-      <span class="badge-count">${endpCount} total</span>
+  <div class="content">
+    ${maintBanner}
+    ${annBanner}
+    <section id="intro" class="hero">
+      <div class="hero-eyebrow">Private Intelligence API</div>
+      <h2 class="hero-title" style="font-weight:inherit;margin:0">BRONX API reference</h2>
+      <div class="hero-sub">
+        Private OSINT APIs for fast and reliable data intelligence.
+        <strong>Optimized performance. Controlled access. Real results.</strong>
+      </div>
+      <div class="hero-tags">
+        <span class="htag"><i class="fas fa-server"></i> ${endpCount + customCount} ENDPOINTS</span>
+        <span class="htag"><i class="fas fa-code"></i> JSON RESPONSES</span>
+        <span class="htag"><i class="fas fa-key"></i> KEY-BASED ACCESS</span>
+        <span class="htag"><i class="fas fa-chart-pie"></i> DAILY QUOTA</span>
+        <span class="htag"><i class="fas fa-bolt"></i> SMART DDOS</span>
+      </div>
+    </section>
+    <div class="burl">
+      <i class="fas fa-link" style="color:var(--ac)"></i>
+      <code id="baseUrl">https://${'your-domain.com'}</code>
+      <button class="cbtn" onclick="copyText('https://'+location.host)" id="copyBtn"><i class="far fa-copy"></i> COPY</button>
     </div>
-    <div class="cat-grid">
-      ${Object.keys(grouped).map(cat => {
-        const meta = catMeta[cat] || catMeta.other;
-        const list = grouped[cat];
-        return `
-        <div class="cat-block" id="cat-${cat}">
-          <div class="cat-head" style="border-left-color:${meta.color}">
-            <span class="cat-icon" style="background:${hexToRgbStr(meta.color, .15)};color:${meta.color}">${meta.icon}</span>
-            <div>
-              <div class="cat-title">${meta.label}</div>
-              <div class="cat-sub">${list.length} endpoint${list.length > 1 ? 's' : ''}</div>
-            </div>
-          </div>
-          <div class="ep-list">
-            ${list.map(e => `
-              <div class="ep-item">
-                <div class="ep-left">
-                  <span class="ep-emoji">${e.i}</span>
-                  <div>
-                    <div class="ep-name">${e.d}</div>
-                    <div class="ep-meta"><code>/${e.name}</code> · <code>${e.p}</code></div>
-                  </div>
-                </div>
-              </div>
-            `).join('')}
-          </div>
-        </div>`;
-      }).join('')}
+    <section id="auth">
+      <h2><i class="fas fa-shield-halved"></i> AUTHENTICATION</h2>
+      <div class="auth">
+        <div class="auth-title"><i class="fas fa-lock"></i> API Key Required</div>
+        <p>Every request needs a valid API key. Pass via query param or header.</p>
+      </div>
+      <div class="cb-wrap">
+        <div class="cb-label">QUERY PARAM</div>
+        <div class="req-line">GET /api/key-bronx/number?key=YOUR_KEY&num=9876543210</div>
+      </div>
+      <div class="cb-wrap">
+        <div class="cb-label">HEADER</div>
+        <div class="req-line">curl -H "X-Api-Key: YOUR_KEY" https://your-domain.com/api/key-bronx/number?num=9876543210</div>
+      </div>
+    </section>
+    <section id="limits">
+      <h2><i class="fas fa-gauge-high"></i> RATE LIMITS</h2>
+      <div class="rl-grid">
+        <div class="rl-item"><div class="rl-val">${Object.keys(keyStorage).length}</div><div class="rl-lbl">Active Keys</div></div>
+        <div class="rl-item"><div class="rl-val">${endpCount}</div><div class="rl-lbl">Built-in APIs</div></div>
+        <div class="rl-item"><div class="rl-val">${customCount}</div><div class="rl-lbl">Custom APIs</div></div>
+      </div>
+      <p style="font-size:14px;color:var(--tx2);line-height:1.8;background:var(--bg2);padding:16px;border-radius:12px;border:1px solid var(--bd);">
+        Quota resets at <strong style="color:var(--tx)">midnight IST</strong> daily. DDoS mode: <strong style="color:var(--tx)">${ddosConfig.mode.toUpperCase()}</strong>. Response headers include rate limit info.
+      </p>
+    </section>
+    <section id="errors">
+      <h2><i class="fas fa-triangle-exclamation"></i> ERROR CODES</h2>
+      <table class="etable">
+        <thead><tr><th>Code</th><th>Meaning</th></tr></thead>
+        <tbody>
+          <tr><td><span class="ecode e4xx">400</span></td><td>Bad request — missing or invalid parameter</td></tr>
+          <tr><td><span class="ecode e4xx">401</span></td><td>No API key provided</td></tr>
+          <tr><td><span class="ecode e4xx">403</span></td><td>Invalid key, expired, scope denied, or IP blocked</td></tr>
+          <tr><td><span class="ecode e4xx">429</span></td><td>Daily quota exceeded or abuse detected</td></tr>
+          <tr><td><span class="ecode e5xx">503</span></td><td>Upstream timeout — retry in a moment</td></tr>
+          <tr><td><span class="ecode e5xx">504</span></td><td>No data found within timeout</td></tr>
+        </tbody>
+      </table>
+    </section>
+    ${buildEndpoints()}
+    ${buildCustom()}
+    <div class="home-foot">
+      🛡️ <span class="brand">BRONX V600 ULTRA</span> · Professional OSINT Platform<br>
+      Server time: ${getIndiaDateTime()} IST · Version 6.0.0${brandName ? ' · ' + esc(brandName) : ''}
     </div>
   </div>
-  ${customCount ? `
-  <div class="section-block" id="custom-apis">
-    <div class="section-head">
-      <h2><i class="fas fa-plug"></i> Custom APIs</h2>
-      <span class="badge-count">${customCount} available</span>
-    </div>
-    <div class="custom-grid">
-      ${customVisible.map(a => `
-        <div class="custom-card">
-          <div class="custom-top">
-            <div class="custom-icon"><i class="fas fa-bolt"></i></div>
-            <div>
-              <div class="custom-name">${esc(a.name)}</div>
-              <div class="custom-ep">/api/custom/${a.endpoint}</div>
-            </div>
-          </div>
-          <div class="custom-body">
-            <div class="custom-row"><span>Param</span><code>${a.param || 'number'}</code></div>
-            <div class="custom-row"><span>Example</span><code>${esc(a.example || '—')}</code></div>
-          </div>
-        </div>
-      `).join('')}
-    </div>
-  </div>` : ''}
-  <div class="home-foot">
-    🛡️ <span class="brand">BRONX V600 ULTRA</span> · Professional OSINT Platform<br>
-    Server time: ${getIndiaDateTime()} IST · Version 6.0.0${brandName ? ' · ' + esc(brandName) : ''}
-  </div>
-</main>
+</div>
 </div>
 <script>
-function scrollToCat(e, id){
-  e.preventDefault();
+function toggleEp(el){
+  const ep = el.parentElement;
+  ep.classList.toggle('open');
+}
+function scrollToId(id){
   const el = document.getElementById(id);
-  if (el) {
-    el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    el.style.transition = 'box-shadow .4s';
+  if(el){
+    el.scrollIntoView({behavior:'smooth', block:'start'});
     el.style.boxShadow = '0 0 0 3px rgba(47,129,247,.35)';
-    setTimeout(() => el.style.boxShadow = '', 1200);
+    setTimeout(()=>{el.style.boxShadow='';}, 1200);
   }
 }
+function scrollToCat(e,id){ e.preventDefault(); scrollToId(id); }
+function openSidebar(){
+  document.getElementById('sb').classList.add('open');
+  document.getElementById('overlay').classList.add('show');
+  document.body.style.overflow = 'hidden';
+}
+function closeSidebar(){
+  document.getElementById('sb').classList.remove('open');
+  document.getElementById('overlay').classList.remove('show');
+  document.body.style.overflow = '';
+}
+function copyText(txt){
+  if(txt.startsWith('https://')){
+    navigator.clipboard.writeText(txt);
+    const btn = document.getElementById('copyBtn');
+    if(btn){
+      const orig = btn.innerHTML;
+      btn.innerHTML = '<i class="fas fa-check"></i> COPIED';
+      btn.classList.add('ok');
+      setTimeout(()=>{ btn.innerHTML = orig; btn.classList.remove('ok'); }, 1500);
+    }
+    return;
+  }
+  navigator.clipboard.writeText(txt);
+  const el = event?.target?.closest('.cp-btn') || event?.target;
+  if(el && el.innerHTML){
+    const orig = el.innerHTML;
+    el.innerHTML = '<i class="fas fa-check"></i> COPIED';
+    setTimeout(()=>{ el.innerHTML = orig; }, 1500);
+  }
+}
+function filterEndpoints(){
+  const q = document.getElementById('epSearch').value.toLowerCase().trim();
+  document.querySelectorAll('.ep').forEach(ep => {
+    const path = (ep.querySelector('.ep-path')?.textContent || '').toLowerCase();
+    const desc = (ep.querySelector('.ep-desc')?.textContent || '').toLowerCase();
+    const id = ep.id.toLowerCase();
+    if(!q || path.includes(q) || desc.includes(q) || id.includes(q)) {
+      ep.style.display = '';
+    } else {
+      ep.style.display = 'none';
+    }
+  });
+  document.querySelectorAll('.cat-section').forEach(sec => {
+    const visibleEps = sec.querySelectorAll('.ep:not([style*="display: none"])');
+    sec.style.display = visibleEps.length ? '' : 'none';
+  });
+}
+document.addEventListener('DOMContentLoaded', function(){
+  document.querySelectorAll('.sba').forEach(a => {
+    a.addEventListener('click', function(){ closeSidebar(); });
+  });
+});
 </script>
 </body>
 </html>`;

@@ -605,18 +605,26 @@ function renderHome(){
   };
 
 const getResponse = (ep) => {
-  const custom = endpointResponses[ep];
+  // Saare possible formats check karo
+  let custom = 
+    endpointResponses[ep] ||                    // Normal: "number"
+    endpointResponses['custom:' + ep] ||        // Custom: "custom:my-api"
+    endpointResponses['c/' + ep] ||             // Alternate: "c/my-api"
+    endpointResponses['custom:' + ep.replace('custom:', '')] ||
+    endpointResponses[ep.replace('c/', '')] ||  // "my-api" from "c/my-api"
+    null;
+  
   if (custom) {
     if (typeof custom === 'string') {
-      try {
-        const parsed = JSON.parse(custom);
-        return JSON.stringify(parsed, null, 2);
-      } catch {
-        return custom;
+      try { 
+        return JSON.stringify(JSON.parse(custom), null, 2); 
+      } catch { 
+        return custom; 
       }
     }
     return JSON.stringify(custom, null, 2);
   }
+  
   return `{
   "success": true,
   "endpoint": "${ep}",
@@ -1232,11 +1240,19 @@ app.post('/bronx-admin-panel/update-endpoint-response', adminAuth, (req, res) =>
             return res.json({ success: false, e: 'Invalid JSON format: ' + e.message });
         }
 
-        if (typeof endpointResponses === 'undefined') global.endpointResponses = {};
-        endpointResponses[endpoint] = parsedData;
+        // Agar "c/endpoint" format me hai toh "endpoint" bhi save karo
+        if (endpoint.startsWith('c/')) {
+            const cleanEp = endpoint.substring(2);
+            endpointResponses[endpoint] = parsedData;
+            endpointResponses[cleanEp] = parsedData;
+            endpointResponses['custom:' + cleanEp] = parsedData;
+        } else {
+            endpointResponses[endpoint] = parsedData;
+            endpointResponses['custom:' + endpoint] = parsedData;
+        }
+
         saveToDisk();
-        
-        console.log('✅ Response saved for endpoint:', endpoint);
+        console.log('✅ Response saved for:', endpoint);
         return res.json({ success: true });
     } catch (err) {
         console.log('❌ Save response error:', err.message);

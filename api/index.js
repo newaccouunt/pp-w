@@ -1139,9 +1139,11 @@ app.get('/api/key-bronx/:endpoint', async (req, res) => {
 
     let upstream;
     try {
+      // 🆕 FIX: arraybuffer
       upstream = await axios.get(targetUrl, {
         timeout: 25000,
-        headers: { 'User-Agent': 'BRONX-V600/1.0', 'Accept': 'application/json' },
+        responseType: 'arraybuffer',
+        headers: { 'User-Agent': 'BRONX-V600/1.0', 'Accept': '*/*' },
         validateStatus: () => true
       });
     } catch (e) {
@@ -1151,10 +1153,30 @@ app.get('/api/key-bronx/:endpoint', async (req, res) => {
     requestLogs.push({ key: key.substring(0, 8) + '***', endpoint: ep, param: epInfo.p, status: upstream.status, timestamp: getIndiaDateTime(), ip: getRealIP(req) });
     if (requestLogs.length > 2000) requestLogs = requestLogs.slice(-2000);
 
-    const branded = applyBranding(upstream.data, kv.keyData);
+    const contentType = upstream.headers['content-type'] || 'application/json';
+    const contentDisposition = upstream.headers['content-disposition'] || '';
+    const buffer = Buffer.from(upstream.data);
+
+    // JSON → apply branding
+    if (contentType.includes('application/json')) {
+      try {
+        const jsonData = JSON.parse(buffer.toString('utf8'));
+        const branded = applyBranding(jsonData, kv.keyData);
+        res.setHeader('X-RateLimit-Mode', ddosConfig.mode);
+        res.setHeader('X-Bronx-Endpoint', ep);
+        return res.status(upstream.status).json(branded);
+      } catch (e) {
+        res.setHeader('Content-Type', contentType);
+        return res.status(upstream.status).send(buffer);
+      }
+    }
+
+    // Non-JSON (PDF, PNG, HTML) → send raw
+    res.setHeader('Content-Type', contentType);
+    if (contentDisposition) res.setHeader('Content-Disposition', contentDisposition);
     res.setHeader('X-RateLimit-Mode', ddosConfig.mode);
     res.setHeader('X-Bronx-Endpoint', ep);
-    return res.status(upstream.status).json(branded);
+    return res.status(upstream.status).send(buffer);
   } catch (e) {
     console.log('Endpoint err:', e.message);
     return errRes(res, 500, 'Internal server error', { detail: e.message });
@@ -1189,9 +1211,11 @@ app.get('/api/custom/:endpoint', async (req, res) => {
 
     let upstream;
     try {
+      // 🆕 FIX: Use responseType 'arraybuffer' to support PDF/PNG/HTML
       upstream = await axios.get(finalUrl, {
         timeout: 25000,
-        headers: { 'User-Agent': 'BRONX-V600/1.0', 'Accept': 'application/json' },
+        responseType: 'arraybuffer',
+        headers: { 'User-Agent': 'BRONX-V600/1.0', 'Accept': '*/*' },
         validateStatus: () => true
       });
     } catch (e) {
@@ -1201,10 +1225,32 @@ app.get('/api/custom/:endpoint', async (req, res) => {
     requestLogs.push({ key: key.substring(0, 8) + '***', endpoint: 'custom:' + ep, param: apiConf.param, status: upstream.status, timestamp: getIndiaDateTime(), ip: getRealIP(req) });
     if (requestLogs.length > 2000) requestLogs = requestLogs.slice(-2000);
 
-    const branded = applyBranding(upstream.data, kv.keyData);
+    // 🆕 FIX: Get content type from upstream
+    const contentType = upstream.headers['content-type'] || 'application/json';
+    const contentDisposition = upstream.headers['content-disposition'] || '';
+    const buffer = Buffer.from(upstream.data);
+
+    // 🆕 FIX: If JSON → apply branding
+    if (contentType.includes('application/json')) {
+      try {
+        const jsonData = JSON.parse(buffer.toString('utf8'));
+        const branded = applyBranding(jsonData, kv.keyData);
+        res.setHeader('X-RateLimit-Mode', ddosConfig.mode);
+        res.setHeader('X-Bronx-Endpoint', 'custom:' + ep);
+        return res.status(upstream.status).json(branded);
+      } catch (e) {
+        // Agar JSON parse fail ho toh raw bhejo
+        res.setHeader('Content-Type', contentType);
+        return res.status(upstream.status).send(buffer);
+      }
+    }
+
+    // 🆕 FIX: For PDF / PNG / HTML / Binary — send raw
+    res.setHeader('Content-Type', contentType);
+    if (contentDisposition) res.setHeader('Content-Disposition', contentDisposition);
     res.setHeader('X-RateLimit-Mode', ddosConfig.mode);
     res.setHeader('X-Bronx-Endpoint', 'custom:' + ep);
-    return res.status(upstream.status).json(branded);
+    return res.status(upstream.status).send(buffer);
   } catch (e) {
     console.log('Custom endpoint err:', e.message);
     return errRes(res, 500, 'Internal server error', { detail: e.message });

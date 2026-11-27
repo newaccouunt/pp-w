@@ -1309,6 +1309,122 @@ app.post(ADMIN_PATH + '/update-scopes', adminAuth, (req,res) => {
 // ============================================================
 // 🎛️ ADMIN APIs (FIXED: Proper Error Handling)
 // ============================================================
+// ---------- ADD CUSTOM API (FIXED) ----------
+app.post(ADMIN_PATH + '/add-api', adminAuth, (req, res) => {
+  try {
+    const { name, endpoint, param, example, realAPI, visible } = req.body;
+    
+    // Validation
+    if (!name || !name.trim()) {
+      return res.json({ success: false, e: 'API Name is required' });
+    }
+    if (!endpoint || !endpoint.trim()) {
+      return res.json({ success: false, e: 'Endpoint is required' });
+    }
+    
+    // Check duplicate endpoint
+    const cleanEndpoint = endpoint.toLowerCase().trim();
+    const existing = customAPIs.find(a => a.endpoint === cleanEndpoint);
+    if (existing) {
+      return res.json({ success: false, e: 'Endpoint already exists. Use a different one.' });
+    }
+    
+    // Create new API
+    const newApi = {
+      id: Date.now(),
+      name: name.trim(),
+      endpoint: cleanEndpoint,
+      param: (param || 'number').trim(),
+      example: example || '',
+      realAPI: realAPI || '',
+      visible: visible !== false,
+      scopeKey: 'custom:' + cleanEndpoint
+    };
+    
+    customAPIs.push(newApi);
+    saveToDisk();
+    
+    console.log('✅ Custom API added:', newApi);
+    res.json({ success: true, api: newApi });
+  } catch (e) {
+    console.error('❌ Add API error:', e.message);
+    res.json({ success: false, e: 'Server error: ' + e.message });
+  }
+});
+
+// ---------- EDIT CUSTOM API (FIXED) ----------
+app.post(ADMIN_PATH + '/edit-api', adminAuth, (req, res) => {
+  try {
+    const { id, name, endpoint, param, example, realAPI } = req.body;
+    const api = customAPIs.find(a => a.id === id);
+    
+    if (!api) {
+      return res.json({ success: false, e: 'API not found' });
+    }
+    
+    if (name) api.name = name.trim();
+    if (endpoint) {
+      const cleanEp = endpoint.toLowerCase().trim();
+      // Check if new endpoint conflicts with another
+      const conflict = customAPIs.find(a => a.id !== id && a.endpoint === cleanEp);
+      if (conflict) {
+        return res.json({ success: false, e: 'Endpoint already exists' });
+      }
+      api.endpoint = cleanEp;
+      api.scopeKey = 'custom:' + cleanEp;
+    }
+    if (param) api.param = param.trim();
+    if (example !== undefined) api.example = example;
+    if (realAPI) api.realAPI = realAPI;
+    
+    saveToDisk();
+    console.log('✅ Custom API edited:', api);
+    res.json({ success: true, api });
+  } catch (e) {
+    console.error('❌ Edit API error:', e.message);
+    res.json({ success: false, e: 'Server error: ' + e.message });
+  }
+});
+
+// ---------- DELETE CUSTOM API (FIXED) ----------
+app.post(ADMIN_PATH + '/delete-api', adminAuth, (req, res) => {
+  try {
+    const { id } = req.body;
+    const before = customAPIs.length;
+    customAPIs = customAPIs.filter(a => a.id !== id);
+    
+    if (customAPIs.length === before) {
+      return res.json({ success: false, e: 'API not found' });
+    }
+    
+    saveToDisk();
+    console.log('✅ Custom API deleted:', id);
+    res.json({ success: true });
+  } catch (e) {
+    console.error('❌ Delete API error:', e.message);
+    res.json({ success: false, e: 'Server error: ' + e.message });
+  }
+});
+
+// ---------- TOGGLE CUSTOM API VISIBILITY (FIXED) ----------
+app.post(ADMIN_PATH + '/toggle-api', adminAuth, (req, res) => {
+  try {
+    const { id } = req.body;
+    const api = customAPIs.find(a => a.id === id);
+    
+    if (!api) {
+      return res.json({ success: false, e: 'API not found' });
+    }
+    
+    api.visible = !api.visible;
+    saveToDisk();
+    console.log('✅ Custom API toggled:', api.endpoint, '→', api.visible);
+    res.json({ success: true, visible: api.visible });
+  } catch (e) {
+    console.error('❌ Toggle API error:', e.message);
+    res.json({ success: false, e: 'Server error: ' + e.message });
+  }
+});
 
 // ---------- GENERATE KEY ----------
 app.post(ADMIN_PATH + '/generate-key', adminAuth, (req,res) => {
